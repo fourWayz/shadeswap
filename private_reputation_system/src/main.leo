@@ -1,14 +1,41 @@
 // The 'private_reputation_system' program.
 program private_reputation_system.aleo {
-    // This is the constructor for the program.
-    // The constructor allows you to manage program upgrades.
-    // It is called when the program is deployed or upgraded.
-    // It is currently configured to **prevent** upgrades.
-    // Other configurations include:
-    //  - @admin(address="aleo1...")
-    //  - @checksum(mapping="credits.aleo/fixme", key="0field")
-    //  - @custom
-    // For more information, please refer to the documentation: `https://docs.leo-lang.org/guides/upgradability`
+   
+     // CONSTANTS
+    // ------------------------------------------------------------
+    const MAX_SCORE: u64 = 1000u64;
+    const MIN_SCORE: u64 = 0u64;
+
+    // ------------------------------------------------------------
+    // PRIVATE RECORD
+    // ------------------------------------------------------------
+    record PrivateReputation {
+        owner: address,
+        score: u64,
+        nonce: u64,          // increments on every update (replay protection)
+        commitment: field
+    }
+
+     // ------------------------------------------------------------
+    // PUBLIC ANCHOR
+    // ------------------------------------------------------------
+    struct PublicAnchor {
+        owner: address,
+        commitment: field,
+        issuer: address,
+        nonce: u64
+    }
+
+    // ------------------------------------------------------------
+    // ZK PROOF OUTPUT 
+    // ------------------------------------------------------------
+    struct ThresholdProof {
+        commitment: field,
+        threshold: u64,
+        nonce: u64
+    }
+
+
     @noupgrade
     async constructor() {}
 
