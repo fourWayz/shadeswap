@@ -1,7 +1,3 @@
-// ============================================================
-// Private Reputation / Credit System
-// ============================================================
-
 program private_reputation_system.aleo {
 
     // ------------------------------------------------------------
@@ -10,38 +6,26 @@ program private_reputation_system.aleo {
     const MAX_SCORE: u64 = 1000u64;
     const MIN_SCORE: u64 = 0u64;
 
-    // ------------------------------------------------------------
-    // PRIVATE RECORD
-    // ------------------------------------------------------------
     record PrivateReputation {
         owner: address,
         score: u64,
-        nonce: u64,          // increments on every update (replay protection)
+        nonce: u64,
         commitment: field
     }
 
-    // ------------------------------------------------------------
-    // PUBLIC ANCHOR
-    // ------------------------------------------------------------
     struct PublicAnchor {
-        owner: address,
+        ownedBy: address,
         commitment: field,
         issuer: address,
         nonce: u64
     }
 
-    // ------------------------------------------------------------
-    // ZK PROOF OUTPUT (MINIMAL)
-    // ------------------------------------------------------------
     struct ThresholdProof {
         commitment: field,
         threshold: u64,
         nonce: u64
     }
 
-    // ------------------------------------------------------------
-    // PUBLIC MAPPINGS 
-    // ------------------------------------------------------------
     mapping latest_commitment_by_owner: address => field;
     mapping anchor_by_commitment: field => PublicAnchor;
     mapping issuer_whitelist: address => bool;
@@ -49,22 +33,19 @@ program private_reputation_system.aleo {
     // ============================================================
     // INITIALIZE REPUTATION
     // ============================================================
-    transition initialize_reputation(
+    async transition initialize_reputation(
         owner: address,
         initial_score: u64,
         issuer: address,
         issuer_signature: signature
-    ) -> (PrivateReputation, PublicAnchor) {
+    ) -> (PrivateReputation, Future) {
 
-        // Verify issuer is authorized
-        assert(issuer_whitelist[issuer]);
+        // Verify issuer signature
+        let message: field = Poseidon2::hash_to_field(owner); 
+        let is_valid: bool = signature::verify(issuer_signature, issuer, message);
+        assert(is_valid);
 
-        // Verify issuer signature over initialization
-        let message: field = hash(owner, initial_score);
-        assert(verify(issuer, message, issuer_signature));
-
-        // Generate initial commitment
-        let commitment: field = hash(owner, initial_score, 0u64);
+        let commitment: field = Poseidon2::hash_to_field(owner);
 
         let private_record: PrivateReputation = PrivateReputation {
             owner: owner,
@@ -74,148 +55,125 @@ program private_reputation_system.aleo {
         };
 
         let anchor: PublicAnchor = PublicAnchor {
-            owner: owner,
+            ownedBy: owner,
             commitment: commitment,
             issuer: issuer,
             nonce: 0u64
         };
 
-        // Publish commitment
-        latest_commitment_by_owner[owner] = commitment;
-        anchor_by_commitment[commitment] = anchor;
+        return (private_record, finalize_initialize(owner, commitment, anchor, issuer));
+    }
 
-        return (private_record, anchor);
+    async function finalize_initialize(owner: address, commitment: field, anchor: PublicAnchor, issuer: address) {
+        let is_whitelisted: bool = Mapping::get_or_use(issuer_whitelist, issuer, false);
+        assert(is_whitelisted);
+
+        Mapping::set(latest_commitment_by_owner, owner, commitment);
+        Mapping::set(anchor_by_commitment, commitment, anchor);
     }
 
     // ============================================================
-    // UPDATE REPUTATION (PRIVATE, REPLAY-SAFE)
+    // UPDATE REPUTATION 
     // ============================================================
-    transition update_reputation(
+    async transition update_reputation(
         current: PrivateReputation,
         score_delta: i64,
         issuer: address,
         issuer_signature: signature
-    ) -> PrivateReputation {
+    ) -> (PrivateReputation, Future) {
 
-        // Ownership check
-        assert(caller == current.owner);
+        assert_eq(self.caller, current.owner);
 
-        // Issuer authorization
-        assert(issuer_whitelist[issuer]);
-
-        // Verify issuer signature for THIS update
-        let message: field = hash(current.owner, score_delta, current.nonce);
-        assert(verify(issuer, message, issuer_signature));
+        // Verify issuer signature 
+        let message: field = Poseidon2::hash_to_field(current.owner);
+        let is_valid: bool = signature::verify(issuer_signature, issuer, message);
+        assert(is_valid);
 
         // Apply bounded score update
         let new_score: u64 = current.score;
-        if score_delta > 0 {
-            new_score = min(current.score + score_delta as u64, MAX_SCORE);
+        if (score_delta > 0i64) {
+            let increase: u64 = score_delta as u64;
+            let sum: u64 = current.score + increase;
+            new_score = sum > MAX_SCORE ? MAX_SCORE : sum;
         } else {
-            let decrease: u64 = abs(score_delta);
-            new_score = max(current.score - decrease, MIN_SCORE);
+            let decrease: u64 = (score_delta * -1i64) as u64;
+            new_score = current.score < decrease ? MIN_SCORE : current.score - decrease;
         }
 
-        // Increment nonce for replay protection
         let new_nonce: u64 = current.nonce + 1u64;
+        let new_commitment: field = Poseidon2::hash_to_field(current.owner);
 
-        // Generate new commitment
-        let new_commitment: field = hash(current.owner, new_score, new_nonce);
-
-        // Update public anchor
-        latest_commitment_by_owner[current.owner] = new_commitment;
-        anchor_by_commitment[new_commitment] = PublicAnchor {
-            owner: current.owner,
+        let anchor: PublicAnchor = PublicAnchor {
+            ownedBy: current.owner,
             commitment: new_commitment,
             issuer: issuer,
             nonce: new_nonce
         };
 
-        return PrivateReputation {
+        let next_rec: PrivateReputation = PrivateReputation {
             owner: current.owner,
             score: new_score,
             nonce: new_nonce,
             commitment: new_commitment
         };
+
+        return (next_rec, finalize_update(current.owner, new_commitment, anchor, issuer));
+    }
+
+    async function finalize_update(owner: address, commitment: field, anchor: PublicAnchor, issuer: address) {
+        let is_whitelisted: bool = Mapping::get_or_use(issuer_whitelist, issuer, false);
+        assert(is_whitelisted);
+
+        Mapping::set(latest_commitment_by_owner, owner, commitment);
+        Mapping::set(anchor_by_commitment, commitment, anchor);
     }
 
     // ============================================================
-    // GENERATE THRESHOLD PROOF (ZK)
+    // GENERATE THRESHOLD PROOF
     // ============================================================
     transition generate_threshold_proof(
-        record: PrivateReputation,
+        records: PrivateReputation,
         threshold: u64
     ) -> ThresholdProof {
-
-        // Ensure caller owns the record
-        assert(caller == record.owner);
-
-        // Private score check
-        assert(record.score >= threshold);
+        assert_eq(self.caller, records.owner);
+        assert(records.score >= threshold);
 
         return ThresholdProof {
-            commitment: record.commitment,
+            commitment: records.commitment,
             threshold: threshold,
-            nonce: record.nonce
+            nonce: records.nonce
         };
     }
 
     // ============================================================
     // VERIFY THRESHOLD PROOF
     // ============================================================
-    transition verify_threshold_proof(
+    async transition verify_threshold_proof(
         proof: ThresholdProof,
         owner: address,
         required_threshold: u64
-    ) -> bool {
-
-        // Threshold meets requirement
+    ) -> Future {
         assert(proof.threshold >= required_threshold);
+        return finalize_verify_proof(proof, owner);
+    }
 
-        // Commitment is latest (replay safe)
-        let latest: field = latest_commitment_by_owner[owner];
-        assert(latest == proof.commitment);
+    async function finalize_verify_proof(proof: ThresholdProof, owner: address) {
+        let latest: field = Mapping::get(latest_commitment_by_owner, owner);
+        assert_eq(latest, proof.commitment);
 
-        // Anchor exists and matches nonce
-        let anchor: PublicAnchor = anchor_by_commitment[proof.commitment];
-        assert(anchor.owner == owner);
-        assert(anchor.nonce == proof.nonce);
-
-        return true;
+        let anchor: PublicAnchor = Mapping::get(anchor_by_commitment, proof.commitment);
+        assert_eq(anchor.ownedBy, owner);
+        assert_eq(anchor.nonce, proof.nonce);
     }
 
     // ============================================================
     // ADMIN: ADD ISSUER
     // ============================================================
-    transition add_issuer(admin: address, issuer: address) {
-        assert(caller == admin);
-        issuer_whitelist[issuer] = true;
+    async transition add_issuer(issuer: address) -> Future {
+        return finalize_add_issuer(issuer);
     }
 
-    // ============================================================
-    // HELPER: MIN / MAX (optional, Leo-native)
-    // ============================================================
-    function min(a: u64, b: u64) -> u64 {
-        if a <= b {
-            return a;
-        } else {
-            return b;
-        }
-    }
-
-    function max(a: u64, b: u64) -> u64 {
-        if a >= b {
-            return a;
-        } else {
-            return b;
-        }
-    }
-
-    function abs(x: i64) -> u64 {
-        if x >= 0 {
-            return x as u64;
-        } else {
-            return (-x) as u64;
-        }
+    async function finalize_add_issuer(issuer: address) {
+        Mapping::set(issuer_whitelist, issuer, true);
     }
 }
