@@ -53,7 +53,14 @@ function mint_token0:
     gt r1 0u128 into r2;
     assert.eq r2 true;
     cast r0 r1 into r3 as Token0.record;
+    async mint_token0 self.caller into r4;
     output r3 as Token0.record;
+    output r4 as shadeswap.aleo/mint_token0.future;
+
+finalize mint_token0:
+    input r0 as address.public;
+    get admin[0u8] into r1;
+    assert.eq r0 r1;
 
 function mint_token1:
     input r0 as address.public;

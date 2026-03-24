@@ -150,7 +150,7 @@
     },
     {
       "name": "mint_token0",
-      "is_async": false,
+      "is_async": true,
       "inputs": [
         {
           "name": "recipient",
@@ -183,6 +183,10 @@
               "program": "shadeswap"
             }
           },
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
           "mode": "None"
         }
       ]
