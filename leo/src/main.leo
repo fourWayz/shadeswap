@@ -112,12 +112,16 @@ program shadeswap.aleo {
     /**
      * Mint Token0 (admin-only in practice)
      */
-    transition mint_token0(
-        public  recipient: address,
-        private amount:    u128
-    ) -> Token0 {
+    async transition mint_token0(public recipient: address, private amount: u128) -> (Token0, Future) {
         assert(amount > 0u128);
-        return Token0 { owner: recipient, amount };
+        let token: Token0 = Token0 { owner: recipient, amount };
+        let f: Future     = finalize_mint_token0(self.caller);
+        return (token, f);
+    }
+
+    async function finalize_mint_token0(caller: address) {
+        let stored_admin: address = Mapping::get(admin, ADMIN_KEY);
+        assert_eq(caller, stored_admin);
     }
 
     /**
