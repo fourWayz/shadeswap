@@ -1,207 +1,245 @@
-# Private Reputation System - Aleo
+# ShadeSwap 🌑
 
-## 🌟 Overview
+> The private spot AMM DEX on Aleo — swap tokens without revealing who you are or how much you traded.
 
-A zero-knowledge reputation and credit scoring system built on Aleo that enables users to privately accumulate reputation scores and prove eligibility for services without revealing their actual scores or historical data.
-
-**Core Innovation**: Users can generate cryptographic proofs demonstrating they meet minimum reputation thresholds (e.g., "score ≥ 700") while keeping their exact scores, history, and identity private.
-
----
-
-## 📋 Contract Address
-
-```
-private_reputation_system.aleo
-```
-
-**Deployed on Aleo Testnet**: ✅ Yes  
-**Status**: Active  
+[![Aleo Testnet](https://img.shields.io/badge/Aleo-Testnet-blue)](https://explorer.aleo.org)
+[![Leo v2.0](https://img.shields.io/badge/Leo-v2.0-green)](https://docs.leo-lang.org)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
 
-## 🎯 Core Features
+## The Problem
 
-### 1. **Private Reputation Records**
-- Each user maintains a private record containing their score and nonce
-- Only the record owner can access their actual reputation data
-- Public commitments stored on-chain for verification
+Every spot DEX on every other chain leaks everything:
 
-### 2. **Private Reputation Updates**
-- Reputation scores can be updated by whitelisted issuers
-- All updates happen privately off-chain
-- On-chain storage only contains cryptographic commitments
+| What leaks | Consequence |
+|---|---|
+| Your swap amount | MEV bots front-run your trade |
+| Your wallet address | Competitors track your strategy |
+| Your LP position size | Targeted attacks on your liquidity |
+| Your trade history | Full financial surveillance |
 
-### 3. **ZK Threshold Proofs** 
-- Generate proofs that a reputation score meets or exceeds a threshold
-- No revelation of actual score or historical data
-- Verifiable by any third party or smart contract
-
-### 4. **Issuer Management**
-- Only approved issuers can update reputation scores
-- Flexible issuer whitelisting via admin functions
+Aleo fixes this. ShadeSwap is built to use every bit of that privacy.
 
 ---
 
-##  System Architecture
+## What ShadeSwap Does
 
-### On-Chain Components (Aleo)
-- **Public Anchors**: Cryptographic commitments linked to user addresses
-- **Issuer Whitelist**: Authorized reputation issuers
-- **Latest Commitments**: Mapping of user addresses to their most recent commitment
+ShadeSwap is a constant-product AMM (like Uniswap v2) where:
 
-### Off-Chain Components
-- **Private Reputation Records**: Stored locally by users
-- **Proof Generation**: Computed client-side using Leo
-- **External Database**: For enhanced UX (see below)
+- **Token balances** are private `record` types — encrypted on-chain, only the owner can read them
+- **Swap amounts and trader identity** are proven off-chain via ZK and never stored on-chain
+- **LP positions** are private records — nobody knows your share of the pool
+- **Pool reserves** are public mappings — so anyone can compute the current price
 
-### External Database Schema
-```sql
--- Optional: For frontend UX optimization
-CREATE TABLE reputation_users (
-    aleo_address VARCHAR(64) PRIMARY KEY,
-    latest_commitment VARCHAR(128),
-    proof_count INT DEFAULT 0,
-    last_activity TIMESTAMP
-);
-
-CREATE TABLE verified_proofs (
-    proof_id VARCHAR(128) PRIMARY KEY,
-    user_address VARCHAR(64),
-    threshold_proven INT,
-    verification_time TIMESTAMP,
-    verifier_address VARCHAR(64)
-);
-```
+The only thing that changes on-chain during a swap is the pool reserve totals. No trader address, no trade size, no token direction is ever written to the ledger.
 
 ---
 
-##  Workflow
+## Ecosystem Positioning
 
-### 1. **Initialization**
-```
-User → Request reputation initialization
-Issuer → Signs initialization request
-Contract → Creates private record + public anchor
-```
+ShadeSwap is designed as the **spot layer** of Aleo's private DeFi stack:
 
-### 2. **Reputation Update**
 ```
-User → Presents current private record to issuer
-Issuer → Computes new score, signs update
-User → Submits update transaction
-Contract → Stores new commitment
+ShadeSwap    →   private spot swaps (token ↔ token)
+ZKPerp       →   private perpetual futures (leveraged longs/shorts)
 ```
 
-### 3. **Proof Generation & Verification**
-```
-User → Generates threshold proof locally
-User → Presents proof to verifier (dApp/contract)
-Verifier → Checks proof validity on-chain
-Result → Boolean (proof valid/invalid)
-```
+Together they form a complete private trading ecosystem. ShadeSwap specifically fills the gap ZKPerp explicitly lists as a future roadmap item: *"Classic DEX (swaps/liquidity)"*.
 
 ---
 
-## Data Structures
+## How It Works
 
-### Private Record (User-Held)
+### Privacy model
+
+```
+User wallet (private records)
+       ↓
+Frontend dApp (Aleo Wallet Adapter + JS SDK)
+       ↓
+ZK proof generated off-chain
+   — swap amount computed privately
+   — trader identity never exposed
+       ↓
+shadeswap.aleo on-chain
+   transition: consume token record → produce new token record
+   finalize:   update public pool reserves only
+```
+
+### Constant-product formula with fee
+
+```
+amount_in_with_fee = amount_in × (1000 - 3)          // 0.3% fee
+amount_out = (amount_in_with_fee × reserve_out)
+           / (reserve_in × 1000 + amount_in_with_fee)
+```
+
+The `finalize` function re-verifies this on-chain and asserts `new_r0 × new_r1 ≥ r0 × r1`, making the invariant tamper-proof.
+
+### Anti-front-running guarantee
+
+The `swap` transitions take a `min_out` parameter. In `finalize`, the contract re-computes `amount_out` from live reserves and asserts `amount_out >= min_out`. If a sandwich bot shifts the price before your tx confirms, the assertion fails and your transaction reverts automatically.
+
+---
+
+## Contract: `shadeswap.aleo`
+
+### Records (private state)
+
 ```leo
-record PrivateReputation {
-    owner: address,     // User's address
-    score: u64,         // Current reputation score (0-1000)
-    nonce: u64,         // Update counter
-    commitment: field   // Cryptographic commitment
-}
+record Token0 { owner: address, amount: u128 }
+record Token1 { owner: address, amount: u128 }
+record LPToken { owner: address, shares: u128 }  // your pool share, hidden
 ```
 
-### Public Anchor (On-Chain)
+### Mappings (public state)
+
 ```leo
-struct PublicAnchor {
-    ownedBy: address,   // User address
-    commitment: field,  // Hash commitment
-    issuer: address,    // Issuer who authorized
-    nonce: u64          // Latest nonce
-}
+mapping reserve0: u8 => u128        // pool reserves, visible for pricing
+mapping reserve1: u8 => u128
+mapping lp_total_supply: u8 => u128
+mapping admin: u8 => address
+mapping pool_initialized: u8 => bool
 ```
 
-### Threshold Proof
+### Transitions
+
+| # | Function | Privacy |
+|---|---|---|
+| 1 | `initialize_pool()` | Public — one-time setup |
+| 2 | `mint_token0/1(recipient, amount)` | Private — admin issues token records |
+| 3 | `transfer_token0/1(token, recipient, amount)` | Fully private — P2P, no trace |
+| 4 | `add_liquidity(t0, t1, amt0, amt1, min_shares)` | Private deposit, public reserve update |
+| 5 | `remove_liquidity(lp, shares, min0, min1)` | Private LP burn, private token return |
+| 6 | `swap_0_for_1(token_in, amount_in, min_out)` | Fully private — trader never revealed |
+| 7 | `swap_1_for_0(token_in, amount_in, min_out)` | Same, reverse direction |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+```bash
+curl -sSf https://aleo.tools/install | sh   # installs Leo + Aleo CLI
+leo --version   # should be 2.x
+```
+
+### Build
+
+```bash
+git clone https://github.com/yourname/shadeswap
+cd shadeswap
+leo build
+```
+
+### Run locally
+
+```bash
+# 1. Initialize the pool
+leo run initialize_pool
+
+# 2. Mint tokens to yourself
+leo run mint_token0  aleo1youradress...  1000000u128
+leo run mint_token1  aleo1youraddress... 1000000u128
+
+# 3. Add liquidity (deposits 500k of each token, min 0 shares — set higher in prod)
+leo run add_liquidity \
+  '{owner: aleo1..., amount: 1000000u128}' \
+  '{owner: aleo1..., amount: 1000000u128}' \
+  500000u128 500000u128 0u128
+
+# 4. Swap 1000 token0 for at least 990 token1 (0.1% slippage tolerance)
+leo run swap_0_for_1 \
+  '{owner: aleo1..., amount: 500000u128}' \
+  1000u128 990u128
+```
+
+### Deploy to Aleo Testnet
+
+```bash
+leo deploy --network testnet
+```
+
+Get testnet ALEO for fees: https://faucet.aleo.org
+
+---
+
+## Key Technical Decisions
+
+### Why `record` not `mapping` for balances?
+
+Mappings are stored publicly on-chain — anyone can read your balance. Records are encrypted UTXO-style objects: only the owner can decrypt them. Every token balance in ShadeSwap is a record. Your wealth is completely hidden.
+
+### Why is the pool price still visible?
+
+Deliberate. Transparent pricing is a feature, not a bug — it lets users compute fair swap rates and prevents the pool from being manipulated silently. Only *who* swaps and *how much* stays hidden.
+
+### The `isqrt` helper
+
+Leo has no built-in square root. For the first liquidity deposit, shares are computed as `sqrt(amount0 × amount1)`. ShadeSwap implements this via 8 Babylonian iterations, giving correct floor-sqrt for all realistic liquidity amounts.
+
+### `MINIMUM_LIQUIDITY` lock
+
+On the first deposit, 1000 shares are permanently locked. This prevents a classic AMM price manipulation attack where an attacker drains the pool to near-zero to distort pricing.
+
+### Safe subtraction pattern
+
+Leo evaluates both branches of ternary operators, which can cause underflow. All subtractions in ShadeSwap use the cap-then-subtract pattern:
 ```leo
-struct ThresholdProof {
-    commitment: field,  // Points to latest anchor
-    threshold: u64,     // Proven lower bound
-    nonce: u64          // Nonce at proof generation
-}
+// ❌ unsafe — Leo evaluates `a - b` even when false
+let result: u64 = a > b ? a - b : 0u64;
+
+// ✅ safe
+let capped_b: u64 = b <= a ? b : a;
+let result: u64 = a - capped_b;
 ```
 
 ---
 
-##  Integration Guide
+## Privacy Comparison
 
-### For dApps/Verifiers
-1. **Request Proof**: Ask users to generate a threshold proof
-2. **Verify On-Chain**: Call `verify_threshold_proof`
-3. **Grant Access**: Provide service if proof is valid
-
-### For Issuers
-1. **Get Whitelisted**: Contact system admin
-2. **Issue Updates**: Sign reputation updates for users
-3. **Maintain Integrity**: Follow reputation guidelines
-
-### For Users
-1. **Initialize**: Get your first reputation record
-2. **Accumulate**: Complete actions to increase score
-3. **Prove**: Generate proofs when needed
+| Feature | Uniswap v2 | ShadeSwap |
+|---|---|---|
+| Token balances | Public | ✅ Private (records) |
+| Swap amounts | Public | ✅ Hidden (ZK proof) |
+| Trader identity | Public | ✅ Hidden |
+| LP position size | Public | ✅ Private (records) |
+| Pool price | Public | ✅ Public (by design) |
+| Front-running protection | ❌ None | ✅ Built-in (min_out + ZK) |
 
 ---
 
-## 🔐 Security Considerations
+## Roadmap
 
-### Privacy Guarantees
-- ✅ Scores never revealed on-chain
-- ✅ Update history remains private
-- ✅ Proofs reveal only threshold information
-- ✅ User identity protected (pseudonymous)
-
-### Trust Assumptions
-- **Issuer Trust**: Reputation accuracy depends on issuers
-- **Key Management**: Users must secure private records
-- **Nonce Management**: Prevents replay attacks
-
-### Audit Status
-- Code reviewed for ZK correctness
-- Aleo VM compatibility verified
-- Economic security analysis complete
+- [x] Core AMM contract (constant-product, 0.3% fee)
+- [x] Private token records (Token0, Token1)
+- [x] Private LP records
+- [x] Slippage protection
+- [x] k-invariant on-chain enforcement
+- [ ] Frontend (React + Aleo Wallet Adapter)
+- [ ] Multi-pool support (multiple token pairs)
+- [ ] USDCx (Aleo testnet stablecoin) integration
+- [ ] Private limit orders
+- [ ] Mainnet deployment
 
 ---
 
+## Resources
 
-## 📈 Use Cases
-
-### **Lending Protocols**
-- Prove creditworthiness without revealing score
-- Private loan eligibility checks
-- Risk-adjusted interest rates
-
-### **Job Platforms**
-- Verify minimum reputation for premium jobs
-- Private freelancer ratings
-- Trustless hiring decisions
-
-### **DAO Governance**
-- Reputation-based voting power
-- Proposal submission thresholds
-- Committee eligibility
-
-### **Social Platforms**
-- Private moderation privileges
-- Content visibility thresholds
-- Community standing proof
+- [Aleo Developer Docs](https://developer.aleo.org)
+- [Leo Language Docs](https://docs.leo-lang.org)
+- [Aleo Testnet Faucet](https://faucet.aleo.org)
+- [Aleo Explorer](https://explorer.aleo.org)
+- [Shield Wallet](https://www.shieldwallet.xyz)
 
 ---
 
+## License
 
-## 📄 License
-
-Apache 2.0 License - See LICENSE file for details
+MIT
 
 ---
+
+*ShadeSwap — swap in the shade.*
