@@ -1,4 +1,5 @@
 import { getAmountOut, getPriceImpact, applySlippage, formatAmount, type Direction } from '@/src/utils/aleo';
+import { TOKEN0_SYMBOL, TOKEN1_SYMBOL } from '@/src/utils/tokens';
 
 interface PriceInfoProps {
   amountIn: bigint;
@@ -25,7 +26,7 @@ export function PriceInfo({
   const impact = getPriceImpact(amountIn, reserveIn, reserveOut);
   const minReceived = applySlippage(amountOut, slippagePct);
 
-  const [token0, token1] = ['TOKEN0', 'TOKEN1'];
+  const [token0, token1] = [TOKEN0_SYMBOL, TOKEN1_SYMBOL];
   const [fromToken, toToken] =
     direction === '0for1' ? [token0, token1] : [token1, token0];
 

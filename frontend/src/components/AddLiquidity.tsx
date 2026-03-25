@@ -13,6 +13,7 @@ import {
   type Reserves,
 } from '@/src/utils/aleo';
 import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
+import { TOKEN0_SYMBOL, TOKEN1_SYMBOL } from '@/src/utils/tokens';
 
 interface AddLiquidityProps {
   reserves: Reserves | null;
@@ -89,14 +90,14 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
         )}
 
         <TokenInput
-          label="TOKEN0 Amount"
-          tokenName="TOKEN0"
+          label={`${TOKEN0_SYMBOL} Amount`}
+          tokenName={TOKEN0_SYMBOL}
           value={amount0Str}
           onChange={setAmount0Str}
         />
         <TokenInput
-          label="TOKEN1 Amount"
-          tokenName="TOKEN1"
+          label={`${TOKEN1_SYMBOL} Amount`}
+          tokenName={TOKEN1_SYMBOL}
           value={amount1Str}
           onChange={isFirstDeposit ? setAmount1Str : undefined}
           readOnly={!isFirstDeposit}
@@ -104,12 +105,12 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
 
         {/* Record inputs */}
         <RecordInput
-          placeholder="TOKEN0 record (paste from wallet)"
+          placeholder={`${TOKEN0_SYMBOL} record (paste from wallet)`}
           value={t0Record}
           onChange={setT0Record}
         />
         <RecordInput
-          placeholder="TOKEN1 record (paste from wallet)"
+          placeholder={`${TOKEN1_SYMBOL} record (paste from wallet)`}
           value={t1Record}
           onChange={setT1Record}
         />

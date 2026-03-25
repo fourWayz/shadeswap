@@ -12,6 +12,7 @@ import {
   type Reserves,
 } from '@/src/utils/aleo';
 import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
+import { TOKEN0_SYMBOL, TOKEN1_SYMBOL } from '@/src/utils/tokens';
 
 interface RemoveLiquidityProps {
   reserves: Reserves | null;
@@ -97,11 +98,11 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
             style={{ background: 'var(--shade-surface2)', borderColor: 'var(--shade-border)' }}
           >
             <InfoRow label="You Will Receive"       value="" />
-            <InfoRow label="  TOKEN0"               value={formatAmount(amount0)} />
-            <InfoRow label="  TOKEN1"               value={formatAmount(amount1)} />
+            <InfoRow label={`  ${TOKEN0_SYMBOL}`}               value={formatAmount(amount0)} />
+            <InfoRow label={`  ${TOKEN1_SYMBOL}`}               value={formatAmount(amount1)} />
             <div style={{ borderTop: '1px solid var(--shade-border)', paddingTop: '8px', marginTop: '8px' }}>
-              <InfoRow label="Min TOKEN0 (0.5% slippage)" value={formatAmount(min0)} />
-              <InfoRow label="Min TOKEN1 (0.5% slippage)" value={formatAmount(min1)} />
+              <InfoRow label={`Min ${TOKEN0_SYMBOL} (0.5% slippage)`} value={formatAmount(min0)} />
+              <InfoRow label={`Min ${TOKEN1_SYMBOL} (0.5% slippage)`} value={formatAmount(min1)} />
             </div>
           </div>
         )}

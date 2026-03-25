@@ -1,6 +1,7 @@
 'use client';
 
 import { formatAmount, type Reserves } from '@/src/utils/aleo';
+import { TOKEN0_SYMBOL, TOKEN1_SYMBOL } from '@/src/utils/tokens';
 
 interface PoolStatsProps {
   reserves: Reserves | null;
@@ -57,15 +58,15 @@ export function PoolStats({ reserves, loading, onRefresh, spinning }: PoolStatsP
         </div>
       ) : (
         <div className="space-y-3">
-          <StatRow label="TOKEN0 Reserve"    value={formatAmount(reserves!.reserve0)} />
-          <StatRow label="TOKEN1 Reserve"    value={formatAmount(reserves!.reserve1)} />
+          <StatRow label={`${TOKEN0_SYMBOL} Reserve`}    value={formatAmount(reserves!.reserve0)} />
+          <StatRow label={`${TOKEN1_SYMBOL} Reserve`}    value={formatAmount(reserves!.reserve1)} />
           <StatRow label="Total LP Supply"   value={formatAmount(reserves!.lpTotalSupply)} />
           <div
             className="pt-3 space-y-3"
             style={{ borderTop: '1px solid var(--shade-border)' }}
           >
             <StatRow
-              label="TOKEN0 per TOKEN1"
+              label={`${TOKEN0_SYMBOL} per ${TOKEN1_SYMBOL}`}
               value={
                 reserves!.reserve1 > 0n
                   ? `${(Number(reserves!.reserve0) / Number(reserves!.reserve1)).toFixed(6)}`
@@ -73,7 +74,7 @@ export function PoolStats({ reserves, loading, onRefresh, spinning }: PoolStatsP
               }
             />
             <StatRow
-              label="TOKEN1 per TOKEN0"
+              label={`${TOKEN1_SYMBOL} per ${TOKEN0_SYMBOL}`}
               value={
                 reserves!.reserve0 > 0n
                   ? `${(Number(reserves!.reserve1) / Number(reserves!.reserve0)).toFixed(6)}`

@@ -16,6 +16,7 @@ import {
   type Reserves,
 } from '@/src/utils/aleo';
 import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
+import { TOKEN0_SYMBOL, TOKEN1_SYMBOL } from '@/src/utils/tokens';
 
 interface SwapPanelProps {
   reserves: Reserves | null;
@@ -23,8 +24,8 @@ interface SwapPanelProps {
 }
 
 const TOKEN_NAMES: Record<Direction, [string, string]> = {
-  '0for1': ['TOKEN0', 'TOKEN1'],
-  '1for0': ['TOKEN1', 'TOKEN0'],
+  '0for1': [TOKEN0_SYMBOL, TOKEN1_SYMBOL],
+  '1for0': [TOKEN1_SYMBOL, TOKEN0_SYMBOL],
 };
 
 export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
