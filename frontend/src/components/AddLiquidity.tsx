@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { TokenInput }   from './TokenInput';
 import { TxStatusCard } from './TxStatus';
+import { RecordCard }   from './RecordCard';
 import { useTransaction, TxStatus } from '@/src/hooks/useTransaction';
+import { useRecord } from '@/src/hooks/useRecord';
 import {
   parseAmount,
   formatAmount,
@@ -23,41 +25,44 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
   const { connected } = useWallet();
   const { status, txId, error, execute, reset } = useTransaction();
 
-  const [amount0Str,  setAmount0Str]  = useState('');
-  const [amount1Str,  setAmount1Str]  = useState('');
-  const [t0Record,    setT0Record]    = useState('');
-  const [t1Record,    setT1Record]    = useState('');
+  const t0 = useRecord('Token0');
+  const t1 = useRecord('Token1');
+
+  const [amount0Str, setAmount0Str] = useState('');
+  const [amount1Str, setAmount1Str] = useState('');
 
   const amount0 = parseAmount(amount0Str);
   const amount1 = parseAmount(amount1Str);
 
   const isFirstDeposit = !reserves || (reserves.reserve0 === 0n && reserves.reserve1 === 0n);
 
-  // Auto-fill amount1 based on pool ratio
+  // Auto-fill amount1 from pool ratio (subsequent deposits)
   useEffect(() => {
     if (isFirstDeposit || !reserves || reserves.reserve0 === 0n) return;
     if (amount0 === 0n) { setAmount1Str(''); return; }
-    const ratio  = Number(reserves.reserve1) / Number(reserves.reserve0);
-    const out    = BigInt(Math.floor(Number(amount0) * ratio));
+    const ratio = Number(reserves.reserve1) / Number(reserves.reserve0);
+    const out   = BigInt(Math.floor(Number(amount0) * ratio));
     setAmount1Str(formatAmount(out));
   }, [amount0Str]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const estimatedShares =
-    reserves
-      ? computeShares(amount0, amount1, reserves.reserve0, reserves.reserve1, reserves.lpTotalSupply)
-      : 0n;
+  const estimatedShares = reserves
+    ? computeShares(amount0, amount1, reserves.reserve0, reserves.reserve1, reserves.lpTotalSupply)
+    : 0n;
 
   const poolSharePct =
     reserves && reserves.lpTotalSupply > 0n && estimatedShares > 0n
       ? ((Number(estimatedShares) / (Number(reserves.lpTotalSupply) + Number(estimatedShares))) * 100).toFixed(2)
       : null;
 
+  const exceeds0 = t0.record && amount0 > t0.record.balance;
+  const exceeds1 = t1.record && amount1 > t1.record.balance;
+
   const handleAdd = async () => {
-    if (!connected || amount0 === 0n || amount1 === 0n) return;
+    if (!connected || amount0 === 0n || amount1 === 0n || !t0.record || !t1.record) return;
     const minShares = applySlippage(estimatedShares, 0.5);
     const tx = buildAddLiquidityTransaction({
-      t0Record: t0Record || `{owner: aleo1placeholder, amount: ${amount0}u128}`,
-      t1Record: t1Record || `{owner: aleo1placeholder, amount: ${amount1}u128}`,
+      t0Record: t0.record.decrypted,
+      t1Record: t1.record.decrypted,
       amount0,
       amount1,
       minShares,
@@ -67,8 +72,12 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
 
   const buttonDisabled =
     !connected ||
+    !t0.record ||
+    !t1.record ||
     amount0 === 0n ||
     amount1 === 0n ||
+    !!exceeds0 ||
+    !!exceeds1 ||
     status === TxStatus.SIGNING ||
     status === TxStatus.PENDING;
 
@@ -89,31 +98,36 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
           </div>
         )}
 
+        {/* Token0 */}
         <TokenInput
           label={`${TOKEN0_SYMBOL} Amount`}
           tokenName={TOKEN0_SYMBOL}
           value={amount0Str}
           onChange={setAmount0Str}
+          balance={t0.record ? formatAmount(t0.record.balance) : undefined}
         />
+        {exceeds0 && (
+          <p className="text-xs" style={{ color: 'var(--shade-red)', fontFamily: 'var(--font-space-mono)' }}>
+            Exceeds {TOKEN0_SYMBOL} balance ({formatAmount(t0.record!.balance)})
+          </p>
+        )}
+        <RecordCard label={`${TOKEN0_SYMBOL} Record`} hook={t0} tokenSymbol={TOKEN0_SYMBOL} />
+
+        {/* Token1 */}
         <TokenInput
           label={`${TOKEN1_SYMBOL} Amount`}
           tokenName={TOKEN1_SYMBOL}
           value={amount1Str}
           onChange={isFirstDeposit ? setAmount1Str : undefined}
           readOnly={!isFirstDeposit}
+          balance={t1.record ? formatAmount(t1.record.balance) : undefined}
         />
-
-        {/* Record inputs */}
-        <RecordInput
-          placeholder={`${TOKEN0_SYMBOL} record (paste from wallet)`}
-          value={t0Record}
-          onChange={setT0Record}
-        />
-        <RecordInput
-          placeholder={`${TOKEN1_SYMBOL} record (paste from wallet)`}
-          value={t1Record}
-          onChange={setT1Record}
-        />
+        {exceeds1 && (
+          <p className="text-xs" style={{ color: 'var(--shade-red)', fontFamily: 'var(--font-space-mono)' }}>
+            Exceeds {TOKEN1_SYMBOL} balance ({formatAmount(t1.record!.balance)})
+          </p>
+        )}
+        <RecordCard label={`${TOKEN1_SYMBOL} Record`} hook={t1} tokenSymbol={TOKEN1_SYMBOL} />
 
         {/* LP share estimate */}
         {estimatedShares > 0n && (
@@ -122,9 +136,7 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
             style={{ background: 'var(--shade-surface2)', borderColor: 'var(--shade-border)' }}
           >
             <InfoRow label="Estimated LP Shares" value={formatAmount(estimatedShares)} />
-            {poolSharePct && (
-              <InfoRow label="Your pool share" value={`${poolSharePct}%`} />
-            )}
+            {poolSharePct && <InfoRow label="Your pool share" value={`${poolSharePct}%`} />}
           </div>
         )}
 
@@ -141,29 +153,12 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
             cursor: buttonDisabled ? 'not-allowed' : 'pointer',
           }}
         >
-          {connected ? 'Add Liquidity' : 'Connect Wallet'}
+          {!connected ? 'Connect Wallet' : !t0.record || !t1.record ? 'Fetch Both Token Records First' : 'Add Liquidity'}
         </button>
       </div>
 
       <TxStatusCard status={status} txId={txId} error={error} onClose={reset} />
     </>
-  );
-}
-
-function RecordInput({ placeholder, value, onChange }: { placeholder: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <input
-      type="text"
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 rounded-lg text-xs border bg-transparent outline-none"
-      style={{
-        fontFamily:  'var(--font-space-mono)',
-        color:       'var(--shade-sub)',
-        borderColor: 'var(--shade-border)',
-      }}
-    />
   );
 }
 

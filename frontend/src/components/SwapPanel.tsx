@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { TokenInput }       from './TokenInput';
 import { PriceInfo }        from './PriceInfo';
 import { SlippageSettings } from './SlippageSettings';
 import { TxStatusCard }     from './TxStatus';
+import { RecordCard }       from './RecordCard';
 import { useTransaction, TxStatus } from '@/src/hooks/useTransaction';
+import { useRecord } from '@/src/hooks/useRecord';
 import {
   parseAmount,
   formatAmount,
@@ -36,13 +38,18 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
   const [amountInStr,  setAmountInStr] = useState('');
   const [amountOutStr, setAmountOutStr] = useState('');
   const [slippage,     setSlippage]    = useState(0.5);
-  const [tokenRecord,  setTokenRecord] = useState('');
   const [clickCount,   setClickCount]  = useState(0);
 
+  // Fetch the correct record based on direction
+  const token0Record = useRecord('Token0');
+  const token1Record = useRecord('Token1');
+  const activeRecord = direction === '0for1' ? token0Record : token1Record;
   const [fromToken, toToken] = TOKEN_NAMES[direction];
 
   const amountInBig  = parseAmount(amountInStr);
   const amountOutBig = parseAmount(amountOutStr);
+
+  const maxBalance = activeRecord.record?.balance ?? 0n;
 
   const [reserveIn, reserveOut] = reserves
     ? direction === '0for1'
@@ -56,13 +63,11 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
       : 0;
 
   const poolHasLiquidity = reserves && reserves.reserve0 > 0n && reserves.reserve1 > 0n;
+  const exceedsBalance   = maxBalance > 0n && amountInBig > maxBalance;
 
   // Live compute output
   useEffect(() => {
-    if (!amountInStr || amountInBig === 0n) {
-      setAmountOutStr('');
-      return;
-    }
+    if (!amountInStr || amountInBig === 0n) { setAmountOutStr(''); return; }
     const out = getAmountOut(amountInBig, direction);
     setAmountOutStr(out > 0n ? formatAmount(out) : '0');
   }, [amountInStr, direction, getAmountOut, amountInBig]);
@@ -72,14 +77,15 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
     setAmountInStr('');
     setAmountOutStr('');
     setClickCount(0);
+    // Records for the other direction stay cached — no need to re-fetch
   };
 
   const handleSwap = async () => {
-    if (!connected || !poolHasLiquidity || amountInBig === 0n) return;
+    if (!connected || !poolHasLiquidity || amountInBig === 0n || !activeRecord.record) return;
 
     const minOut = applySlippage(amountOutBig, slippage);
     const tx = buildSwapTransaction({
-      tokenRecord: tokenRecord || `{owner: aleo1placeholder, amount: ${amountInBig}u128}`,
+      tokenRecord: activeRecord.record.decrypted,
       amountIn: amountInBig,
       minOut,
       direction,
@@ -87,7 +93,7 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
 
     if (priceImpact > 15) {
       setClickCount((c) => {
-        if (c === 0) return 1; // require second click
+        if (c === 0) return 1;
         execute(tx);
         return 0;
       });
@@ -97,18 +103,22 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
   };
 
   const buttonLabel = () => {
-    if (!connected)          return 'Connect Wallet';
-    if (!poolHasLiquidity)   return 'Pool Not Initialized';
-    if (amountInBig === 0n)  return 'Enter an Amount';
+    if (!connected)                          return 'Connect Wallet';
+    if (!poolHasLiquidity)                   return 'Pool Not Initialized';
+    if (!activeRecord.record)                return `Fetch ${fromToken} Record First`;
+    if (amountInBig === 0n)                  return 'Enter an Amount';
+    if (exceedsBalance)                      return 'Insufficient Balance';
     if (priceImpact > 15 && clickCount === 1) return 'Click Again to Confirm';
-    if (priceImpact > 15)    return 'Swap Anyway';
+    if (priceImpact > 15)                    return 'Swap Anyway';
     return 'Swap';
   };
 
   const buttonDisabled =
     !connected ||
     !poolHasLiquidity ||
+    !activeRecord.record ||
     amountInBig === 0n ||
+    exceedsBalance ||
     status === TxStatus.SIGNING ||
     status === TxStatus.PENDING;
 
@@ -130,12 +140,13 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
         </div>
 
         {/* Token inputs */}
-        <div className="space-y-2 relative">
+        <div className="space-y-2">
           <TokenInput
             label="You Pay"
             tokenName={fromToken}
             value={amountInStr}
             onChange={setAmountInStr}
+            balance={activeRecord.record ? formatAmount(activeRecord.record.balance) : undefined}
           />
 
           {/* Flip button */}
@@ -161,21 +172,24 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
           />
         </div>
 
-        {/* Token record input (for hackathon — user pastes their record) */}
+        {/* Record fetch */}
         <div className="mt-3">
-          <input
-            type="text"
-            placeholder="Paste your token record (from wallet)"
-            value={tokenRecord}
-            onChange={(e) => setTokenRecord(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-xs border bg-transparent outline-none"
-            style={{
-              fontFamily:  'var(--font-space-mono)',
-              color:       'var(--shade-sub)',
-              borderColor: 'var(--shade-border)',
-            }}
+          <RecordCard
+            label={`${fromToken} Record`}
+            hook={activeRecord}
+            tokenSymbol={fromToken}
           />
         </div>
+
+        {/* Exceeds balance warning */}
+        {exceedsBalance && (
+          <div
+            className="mt-2 px-3 py-2 rounded-lg text-xs"
+            style={{ background: 'rgba(255,95,87,0.1)', color: 'var(--shade-red)', fontFamily: 'var(--font-space-mono)' }}
+          >
+            Amount exceeds your {fromToken} balance of {formatAmount(maxBalance)}
+          </div>
+        )}
 
         {/* Price info */}
         {amountInBig > 0n && poolHasLiquidity && reserves && (
@@ -241,13 +255,7 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
         </div>
       </div>
 
-      {/* Tx status toast */}
-      <TxStatusCard
-        status={status}
-        txId={txId}
-        error={error}
-        onClose={reset}
-      />
+      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} />
     </>
   );
 }
