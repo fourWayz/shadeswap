@@ -16,18 +16,14 @@ export function FaucetPanel() {
     if (!connected || !address) return;
 
     const tx = {
-      transitions: [
-        {
-          program: PROGRAM_ID,
-          functionName: 'mint_token1',
-          inputs: [address, `${FAUCET_AMOUNT}u128`],
-        },
-      ],
-      fee: 1_000_000,
+      program: PROGRAM_ID,
+      function: 'mint_token1',
+      inputs: [address, `${FAUCET_AMOUNT}u128`],
+      fee: 50_000,
       privateFee: false,
     };
 
-    await execute(tx as unknown as Parameters<typeof execute>[0]);
+    await execute(tx);
     setClaimed(true);
   };
 
