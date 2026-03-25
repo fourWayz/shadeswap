@@ -9,15 +9,15 @@ import { DecryptPermission } from "@provablehq/aleo-wallet-adaptor-core";
 import { useMemo } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const wallets = useMemo(
-    () => [new LeoWalletAdapter(), new ShieldWalletAdapter()],
-    [],
-  );
+
   const programName = process.env.NEXT_PUBLIC_PROGRAM_NAME || "shadeswap.aleo";
 
   return (
     <AleoWalletProvider
-      wallets={wallets}
+    wallets={[
+            new ShieldWalletAdapter(),
+            new LeoWalletAdapter(),
+          ]}
       network={Network.TESTNET}
       autoConnect
       decryptPermission={DecryptPermission.UponRequest}

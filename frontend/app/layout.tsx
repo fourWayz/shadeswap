@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Syne, Space_Mono } from "next/font/google";
 import "./globals.css";
+import "@provablehq/aleo-wallet-adaptor-react-ui/dist/styles.css";
 import { Providers } from "@/src/components/Providers";
 
 const syne = Syne({

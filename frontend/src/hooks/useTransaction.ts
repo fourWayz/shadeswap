@@ -25,7 +25,7 @@ interface UseTransactionReturn {
 }
 
 export function useTransaction(): UseTransactionReturn {
-  const { executeTransaction } = useWallet();
+  const { executeTransaction, transactionStatus } = useWallet();
   const [status, setStatus] = useState<TxStatus>(TxStatus.IDLE);
   const [txId,   setTxId]   = useState<string | null>(null);
   const [error,  setError]  = useState<string | null>(null);
@@ -39,10 +39,14 @@ export function useTransaction(): UseTransactionReturn {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = await (executeTransaction as any)(tx);
-        const id: string = result?.transactionId ?? result ?? '';
+        const id: string =
+          typeof result === 'string' ? result : (result?.transactionId ?? '');
         setTxId(id || null);
         setStatus(TxStatus.PENDING);
-        await pollConfirmation(id);
+        if (id) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await pollConfirmation(id, transactionStatus as any);
+        }
         setStatus(TxStatus.CONFIRMED);
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Transaction failed';
@@ -50,7 +54,7 @@ export function useTransaction(): UseTransactionReturn {
         setStatus(TxStatus.FAILED);
       }
     },
-    [executeTransaction]
+    [executeTransaction, transactionStatus]
   );
 
   const reset = useCallback(() => {
@@ -62,21 +66,38 @@ export function useTransaction(): UseTransactionReturn {
   return { status, txId, error, execute, reset };
 }
 
-// Poll the Aleo API for tx confirmation (up to 60s)
-async function pollConfirmation(txId: string): Promise<void> {
+// Poll via wallet's transactionStatus (mirrors the working example)
+async function pollConfirmation(
+  txId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transactionStatus: ((id: string) => Promise<any>) | undefined
+): Promise<void> {
   if (!txId) return;
-  const API = 'https://api.explorer.aleo.org/v2/testnet';
-  const maxAttempts = 12;
-  const delay = 5_000;
 
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, delay));
-    try {
-      const res = await fetch(`${API}/transaction/${txId}`);
-      if (res.ok) return; // tx found = confirmed
-    } catch {
-      // continue polling
-    }
-  }
-  // After timeout, assume confirmed (testnet can be slow)
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = await transactionStatus?.(txId);
+        if (!result) return;
+
+        if (result.status === 'Accepted' && result.transactionId) {
+          clearInterval(interval);
+          resolve();
+        } else if (result.status !== 'pending') {
+          clearInterval(interval);
+          reject(new Error(`Transaction ${result.status}`));
+        }
+      } catch (err) {
+        clearInterval(interval);
+        reject(err);
+      }
+    }, 2_000);
+
+    // Safety timeout after 3 minutes
+    setTimeout(() => {
+      clearInterval(interval);
+      resolve(); // assume confirmed if timeout
+    }, 180_000);
+  });
 }

@@ -3,16 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WalletMultiButton } from '@provablehq/aleo-wallet-adaptor-react-ui';
+import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
 
 const NAV_LINKS = [
-  { href: '/swap',  label: 'Swap'  },
-  { href: '/pool',  label: 'Pool'  },
-  { href: '/stats', label: 'Stats' },
+  { href: '/swap',   label: 'Swap'   },
+  { href: '/pool',   label: 'Pool'   },
+  { href: '/faucet', label: 'Faucet' },
+  { href: '/stats',  label: 'Stats'  },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
-
+  const { address, connect, disconnect, connected } = useWallet()
   return (
     <nav
       className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b"
