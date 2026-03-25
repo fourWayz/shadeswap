@@ -89,6 +89,9 @@ program shadeswap.aleo {
         return numerator / denominator;
     }
 
+    @noupgrade
+    async constructor(
+    ) {}
 
     /**
      * Initializes the pool (only once)

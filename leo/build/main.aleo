@@ -316,3 +316,6 @@ finalize swap_1_for_0:
     assert.eq r17 true;
     set r13 into reserve0[0u8];
     set r14 into reserve1[0u8];
+
+constructor:
+    assert.eq edition 0u16;
