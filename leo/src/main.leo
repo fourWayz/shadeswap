@@ -244,6 +244,9 @@ program shadeswap.aleo {
         Mapping::set(reserve0,        POOL_ID, r0 + amount0);
         Mapping::set(reserve1,        POOL_ID, r1 + amount1);
         Mapping::set(lp_total_supply, POOL_ID, total_lp + shares);
+
+
+        
     }
 
 

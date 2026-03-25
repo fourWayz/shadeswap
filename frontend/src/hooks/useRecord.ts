@@ -5,8 +5,8 @@ import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
 import { PROGRAM_ID } from '@/src/utils/aleo';
 
 export interface FetchedRecord {
-  decrypted: string; 
-  balance: bigint;  
+  decrypted: string;  // decrypted ciphertext — pass directly as tx input
+  balance: bigint;    // parsed amount/shares from record data
 }
 
 export type RecordName = 'Token0' | 'Token1' | 'LPToken';
@@ -29,27 +29,31 @@ export function useRecord(recordName: RecordName) {
     setError(null);
     setRecord(null);
     try {
+      // requestRecords(programId, includeSpent)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const all: any[] = await (requestRecords as any)(PROGRAM_ID, false);
 
       // Find the first unspent record matching this type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const found = all.find((r: any) => r.recordName === recordName && !r.spent);
+      console.log(found)
 
       if (!found) {
         setError(`No unspent ${recordName} record found in your wallet.`);
         return;
       }
 
+      // Decrypt so the wallet can use it as a private record input
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const decrypted: string = await (decrypt as any)(found.recordCiphertext);
 
+      // Parse balance from the DECRYPTED string — found.data fields are ciphertexts before decryption.
+      // Decrypted format: "{ owner: aleo1....private, amount: 1000000000u128.private, ... }"
       const field = BALANCE_FIELD[recordName];
-      const raw: string = found.data?.[field] ?? '0u128.private';
-      // Format is "1000000000u128.private" — extract only the leading number
-      const balance = BigInt(raw.match(/^(\d+)/)?.[1] ?? '0');
+      const match = decrypted.match(new RegExp(`${field}:\\s*(\\d+)u\\d+`));
+      const balance = BigInt(match?.[1] ?? '0');
 
-      console.log(`Fetched record for ${recordName}: balance=${balance}, decrypted=${decrypted}`);
+      console.log(`Fetched ${recordName}: balance=${balance}`);
       setRecord({ decrypted, balance });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to fetch records from wallet');

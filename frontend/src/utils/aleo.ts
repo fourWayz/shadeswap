@@ -34,7 +34,7 @@ export interface RemoveLiquidityParams {
 
 export const PROGRAM_ID = 'shadeswap.aleo';
 export const NETWORK    = 'testnet';
-export const API_URL    = 'https://api.explorer.aleo.org/v2/testnet';
+export const API_URL    = 'https://api.provable.com/v2/testnet';
 export const DECIMALS   = 6;
 
 const FEE_NUMERATOR   = 3n;
@@ -201,7 +201,7 @@ export function buildSwapTransaction(params: SwapParams): AleoTxOptions {
       `${params.amountIn}u128`,
       `${params.minOut}u128`,
     ],
-    fee: 0.001,
+    fee: 1_500_000,
     privateFee: false,
   };
 }
@@ -217,7 +217,7 @@ export function buildAddLiquidityTransaction(params: AddLiquidityParams): AleoTx
       `${params.amount1}u128`,
       `${params.minShares}u128`,
     ],
-    fee: 0.001,
+    fee: 1_500_000,
     privateFee: false,
   };
 }
@@ -232,7 +232,7 @@ export function buildRemoveLiquidityTransaction(params: RemoveLiquidityParams): 
       `${params.minAmount0}u128`,
       `${params.minAmount1}u128`,
     ],
-    fee: 0.001,
+    fee: 1_500_000,
     privateFee: false,
   };
 }
