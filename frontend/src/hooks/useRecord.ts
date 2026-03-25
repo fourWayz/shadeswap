@@ -5,8 +5,8 @@ import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
 import { PROGRAM_ID } from '@/src/utils/aleo';
 
 export interface FetchedRecord {
-  decrypted: string;  // decrypted ciphertext — pass directly as tx input
-  balance: bigint;    // parsed amount/shares from record data
+  decrypted: string; 
+  balance: bigint;  
 }
 
 export type RecordName = 'Token0' | 'Token1' | 'LPToken';
@@ -29,7 +29,6 @@ export function useRecord(recordName: RecordName) {
     setError(null);
     setRecord(null);
     try {
-      // requestRecords(programId, includeSpent)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const all: any[] = await (requestRecords as any)(PROGRAM_ID, false);
 
@@ -42,14 +41,13 @@ export function useRecord(recordName: RecordName) {
         return;
       }
 
-      // Decrypt so the wallet can use it as a private record input
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const decrypted: string = await (decrypt as any)(found.recordCiphertext);
 
-      // Parse balance from record data field (e.g. "1000000u128.private")
       const field = BALANCE_FIELD[recordName];
       const raw: string = found.data?.[field] ?? '0u128.private';
-      const balance = BigInt(raw.replace(/[^0-9]/g, '') || '0');
+      // Format is "1000000000u128.private" — extract only the leading number
+      const balance = BigInt(raw.match(/^(\d+)/)?.[1] ?? '0');
 
       console.log(`Fetched record for ${recordName}: balance=${balance}, decrypted=${decrypted}`);
       setRecord({ decrypted, balance });
