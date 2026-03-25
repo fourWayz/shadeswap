@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
+/* ── Design tokens ───────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --shade-bg:       #080a0e;
+  --shade-surface:  #0d1017;
+  --shade-surface2: #131720;
+  --shade-border:   #1e2535;
+  --shade-border2:  #2a3347;
+  --shade-amber:    #f5a623;
+  --shade-amber2:   #ffbe4d;
+  --shade-green:    #3ddc84;
+  --shade-red:      #ff5f57;
+  --shade-muted:    #4a566e;
+  --shade-sub:      #8899b0;
+  --shade-text:     #cdd9eb;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Tailwind v4 theme registration ──────────────────────── */
+@theme {
+  --color-shade-bg:       var(--shade-bg);
+  --color-shade-surface:  var(--shade-surface);
+  --color-shade-surface2: var(--shade-surface2);
+  --color-shade-border:   var(--shade-border);
+  --color-shade-border2:  var(--shade-border2);
+  --color-shade-amber:    var(--shade-amber);
+  --color-shade-amber2:   var(--shade-amber2);
+  --color-shade-green:    var(--shade-green);
+  --color-shade-red:      var(--shade-red);
+  --color-shade-muted:    var(--shade-muted);
+  --color-shade-sub:      var(--shade-sub);
+  --color-shade-text:     var(--shade-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ────────────────────────────────────────────────── */
+html {
+  background-color: var(--shade-bg);
+  color: var(--shade-text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--shade-bg);
+  background-image:
+    radial-gradient(circle, var(--shade-border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: fixed;
+  color: var(--shade-text);
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--shade-bg); }
+::-webkit-scrollbar-thumb { background: var(--shade-border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--shade-muted); }
+
+/* ── Keyframe animations ─────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-spin        { animation: spin 1s linear infinite; }
+.animate-pulse-amber { animation: pulse-amber 2s ease-in-out infinite; }
+.animate-slide-up    { animation: slide-up 0.25s ease-out; }
+.animate-fade-in     { animation: fade-in 0.2s ease-out; }
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--shade-surface2) 25%,
+    var(--shade-border)   50%,
+    var(--shade-surface2) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
 }
