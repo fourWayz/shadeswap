@@ -8,26 +8,26 @@ import { TOKEN0_SYMBOL, TOKEN1_SYMBOL, FAUCET_AMOUNT } from '@/src/utils/tokens'
 import { PROGRAM_ID, formatAmount } from '@/src/utils/aleo';
 
 export function FaucetPanel() {
-  const { connected, publicKey } = useWallet();
+  const { connected, address } = useWallet();
   const { status, txId, error, execute, reset } = useTransaction();
   const [claimed, setClaimed] = useState(false);
 
   const handleClaim = async () => {
-    if (!connected || !publicKey) return;
+    if (!connected || !address) return;
 
     const tx = {
       transitions: [
         {
           program: PROGRAM_ID,
           functionName: 'mint_token1',
-          inputs: [publicKey, `${FAUCET_AMOUNT}u128`],
+          inputs: [address, `${FAUCET_AMOUNT}u128`],
         },
       ],
       fee: 1_000_000,
       privateFee: false,
     };
 
-    await execute(tx as Parameters<typeof execute>[0]);
+    await execute(tx as unknown as Parameters<typeof execute>[0]);
     setClaimed(true);
   };
 
