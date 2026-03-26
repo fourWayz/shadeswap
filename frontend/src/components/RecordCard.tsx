@@ -49,7 +49,10 @@ export function RecordCard({ label, tokenSymbol, hook }: RecordCardProps) {
              style={{ color: 'var(--shade-green)', fontFamily: 'var(--font-space-mono)' }}>
             <span>✓</span>
             <span className="font-bold">{formatAmount(record.balance)} {tokenSymbol}</span>
-            <span style={{ color: 'var(--shade-muted)' }}>· record ready</span>
+            {record.count > 1
+              ? <span style={{ color: 'var(--shade-amber)' }}>· {record.count} records (re-fetch after tx)</span>
+              : <span style={{ color: 'var(--shade-muted)' }}>· record ready</span>
+            }
           </p>
         )}
 
