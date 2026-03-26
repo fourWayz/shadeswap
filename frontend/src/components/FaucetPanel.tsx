@@ -19,7 +19,7 @@ export function FaucetPanel() {
       program: PROGRAM_ID,
       function: 'mint_token1',
       inputs: [address, `${FAUCET_AMOUNT}u128`],
-      fee: 50_000,
+      fee: 1_500_000,
       privateFee: false,
     };
 
@@ -257,7 +257,7 @@ export function FaucetPanel() {
         </div>
       </div>
 
-      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} />
+      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} successMessage="Tokens minted!" successSubtext="Check your wallet records" />
     </>
   );
 }

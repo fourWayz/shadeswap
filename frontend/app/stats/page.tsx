@@ -25,7 +25,7 @@ export default function StatsPage() {
 
           {/* Contract info */}
           <Card title="Contract Info">
-            <InfoRow label="Program"  value="shadeswap_v2.aleo" />
+            <InfoRow label="Program"  value="shadeswap_v4.aleo" />
             <InfoRow label="Network"  value="Aleo Testnet"   />
             <InfoRow
               label="Explorer"

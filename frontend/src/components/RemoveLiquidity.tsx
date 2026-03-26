@@ -167,7 +167,7 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
         </button>
       </div>
 
-      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} />
+      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} successMessage="Liquidity removed!" successSubtext="Tokens returned to your wallet" />
     </>
   );
 }

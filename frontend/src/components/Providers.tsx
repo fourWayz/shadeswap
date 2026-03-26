@@ -10,7 +10,7 @@ import { useMemo } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
 
-  const programName = process.env.NEXT_PUBLIC_PROGRAM_NAME || "shadeswap_v2.aleo";
+  const programName = process.env.NEXT_PUBLIC_PROGRAM_NAME || "shadeswap_v4.aleo";
 
   return (
     <AleoWalletProvider

@@ -8,6 +8,8 @@ interface TxStatusProps {
   txId: string | null;
   error: string | null;
   onClose: () => void;
+  successMessage?: string;
+  successSubtext?: string;
 }
 
 const EXPLORER_BASE = 'https://testnet.explorer.provable.com/transaction';
@@ -17,7 +19,7 @@ function truncate(s: string, n = 12) {
   return `${s.slice(0, n)}...${s.slice(-n)}`;
 }
 
-export function TxStatusCard({ status, txId, error, onClose }: TxStatusProps) {
+export function TxStatusCard({ status, txId, error, onClose, successMessage = 'Transaction confirmed!', successSubtext = 'Settled privately on Aleo' }: TxStatusProps) {
   // Auto-dismiss on CONFIRMED
   useEffect(() => {
     if (status === TxStatus.CONFIRMED) {
@@ -92,10 +94,10 @@ export function TxStatusCard({ status, txId, error, onClose }: TxStatusProps) {
           <span className="text-2xl mt-0.5">✓</span>
           <div>
             <p className="font-semibold text-sm" style={{ color: 'var(--shade-green)', fontFamily: 'var(--font-syne)' }}>
-              Swap confirmed!
+              {successMessage}
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--shade-sub)', fontFamily: 'var(--font-space-mono)' }}>
-              Your trade settled privately
+              {successSubtext}
             </p>
             {ExplorerLink}
           </div>

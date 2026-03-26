@@ -32,7 +32,7 @@ export interface RemoveLiquidityParams {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const PROGRAM_ID = 'shadeswap_v2.aleo';
+export const PROGRAM_ID = 'shadeswap_v4.aleo';
 export const NETWORK    = 'testnet';
 export const API_URL    = 'https://api.provable.com/v2/testnet';
 export const DECIMALS   = 6;
@@ -169,8 +169,8 @@ export async function fetchReserves(): Promise<Reserves> {
 
   const parse = (s: string | null): bigint => {
     if (!s) return 0n;
-    // Values come back as "123456u128" — strip the type suffix
-    const clean = s.replace(/[^0-9]/g, '');
+    // Values come back as "123456u128" — extract leading digits only
+    const clean = s.match(/^\d+/)?.[0] ?? '';
     return clean ? BigInt(clean) : 0n;
   };
 

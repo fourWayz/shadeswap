@@ -157,7 +157,7 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
         </button>
       </div>
 
-      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} />
+      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} successMessage="Liquidity added!" successSubtext="Your LP position is private" />
     </>
   );
 }
