@@ -2,7 +2,7 @@
  * ShadeSwap — Private AMM on Aleo
  * Similar to Uniswap v2, but balances and trades stay private
  */
-program shadeswap_v4.aleo {
+program shadeswap_v5.aleo {
 
     /** 0.3% fee (Uniswap-style) */
     const FEE_NUMERATOR: u128   = 3u128;
@@ -175,6 +175,21 @@ program shadeswap_v4.aleo {
             amount: token.amount - amount,
         };
         return (sent, change);
+    }
+
+
+    /**
+     * Merge two Token0 records into one (consolidate SHADE records)
+     */
+    transition merge_token0(private r1: Token0, private r2: Token0) -> Token0 {
+        return Token0 { owner: self.signer, amount: r1.amount + r2.amount };
+    }
+
+    /**
+     * Merge two Token1 records into one (consolidate USDC records)
+     */
+    transition merge_token1(private r1: Token1, private r2: Token1) -> Token1 {
+        return Token1 { owner: self.signer, amount: r1.amount + r2.amount };
     }
 
 
