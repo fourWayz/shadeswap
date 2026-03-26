@@ -31,7 +31,6 @@ const TOKEN_NAMES: Record<Direction, [string, string]> = {
 };
 
 export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
-  console.log(reserves)
   const { connected } = useWallet();
   const { status, txId, error, execute, reset } = useTransaction();
 
@@ -72,6 +71,17 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
     const out = getAmountOut(amountInBig, direction);
     setAmountOutStr(out > 0n ? formatAmount(out) : '0');
   }, [amountInStr, direction, getAmountOut, amountInBig]);
+
+  // Auto-refresh record after swap confirms so balance updates immediately
+  useEffect(() => {
+    if (status === TxStatus.CONFIRMED) {
+      // activeRecord.clear();
+      // activeRecord.fetch();
+      setAmountInStr('');
+      setAmountOutStr('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   const handleFlip = () => {
     setDirection((d) => (d === '0for1' ? '1for0' : '0for1'));
@@ -179,6 +189,7 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
             label={`${fromToken} Record`}
             hook={activeRecord}
             tokenSymbol={fromToken}
+            tokenType={direction === '0for1' ? 'Token0' : 'Token1'}
           />
         </div>
 
@@ -256,7 +267,7 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
         </div>
       </div>
 
-      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} />
+      <TxStatusCard status={status} txId={txId} error={error} onClose={reset} successMessage="Swap confirmed!" successSubtext="Your trade settled privately" />
     </>
   );
 }

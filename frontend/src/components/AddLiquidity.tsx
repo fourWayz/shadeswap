@@ -111,7 +111,7 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
             Exceeds {TOKEN0_SYMBOL} balance ({formatAmount(t0.record!.balance)})
           </p>
         )}
-        <RecordCard label={`${TOKEN0_SYMBOL} Record`} hook={t0} tokenSymbol={TOKEN0_SYMBOL} />
+        <RecordCard label={`${TOKEN0_SYMBOL} Record`} hook={t0} tokenSymbol={TOKEN0_SYMBOL} tokenType="Token0" />
 
         {/* Token1 */}
         <TokenInput
@@ -127,7 +127,7 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
             Exceeds {TOKEN1_SYMBOL} balance ({formatAmount(t1.record!.balance)})
           </p>
         )}
-        <RecordCard label={`${TOKEN1_SYMBOL} Record`} hook={t1} tokenSymbol={TOKEN1_SYMBOL} />
+        <RecordCard label={`${TOKEN1_SYMBOL} Record`} hook={t1} tokenSymbol={TOKEN1_SYMBOL} tokenType="Token1" />
 
         {/* LP share estimate */}
         {estimatedShares > 0n && (

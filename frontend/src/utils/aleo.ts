@@ -32,7 +32,7 @@ export interface RemoveLiquidityParams {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const PROGRAM_ID = 'shadeswap_v4.aleo';
+export const PROGRAM_ID = 'shadeswap_v5.aleo';
 export const NETWORK    = 'testnet';
 export const API_URL    = 'https://api.provable.com/v2/testnet';
 export const DECIMALS   = 6;
@@ -43,7 +43,7 @@ const MINIMUM_LIQUIDITY = 1000n;
 
 // ── Formatting ────────────────────────────────────────────────────────────────
 
-/** Convert on-chain bigint (6 decimals) to human-readable string */
+/** Convert on-chain bigint  */
 export function formatAmount(amount: bigint, decimals = DECIMALS): string {
   const d = BigInt(10 ** decimals);
   const whole = amount / d;
@@ -182,7 +182,6 @@ export async function fetchReserves(): Promise<Reserves> {
 }
 
 // ── Transaction builders ──────────────────────────────────────────────────────
-// Returns AleoTxOptions — the flat shape that executeTransaction expects
 
 export interface AleoTxOptions {
   program: string;
@@ -217,6 +216,16 @@ export function buildAddLiquidityTransaction(params: AddLiquidityParams): AleoTx
       `${params.amount1}u128`,
       `${params.minShares}u128`,
     ],
+    fee: 1_500_000,
+    privateFee: false,
+  };
+}
+
+export function buildMergeTransaction(token: 'Token0' | 'Token1', record1: string, record2: string): AleoTxOptions {
+  return {
+    program: PROGRAM_ID,
+    function: token === 'Token0' ? 'merge_token0' : 'merge_token1',
+    inputs: [record1, record2],
     fee: 1_500_000,
     privateFee: false,
   };

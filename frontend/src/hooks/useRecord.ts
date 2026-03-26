@@ -4,11 +4,18 @@ import { useState, useCallback } from 'react';
 import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
 import { PROGRAM_ID } from '@/src/utils/aleo';
 
-export interface FetchedRecord {
+export interface RecordEntry {
   ciphertext: string;
-  decrypted: string;  // decrypted plaintext of best record — pass as tx input
-  balance: bigint;    // total balance across all unspent records
-  count: number;      // number of unspent records found
+  decrypted: string;
+  balance: bigint;
+}
+
+export interface FetchedRecord {
+  ciphertext: string;  // best record (highest balance) 
+  decrypted: string;
+  balance: bigint;     // total across all records
+  count: number;
+  all: RecordEntry[];  // every unspent record with its individual balance
 }
 
 export type RecordName = 'Token0' | 'Token1' | 'LPToken';
@@ -19,18 +26,9 @@ const BALANCE_FIELD: Record<RecordName, string> = {
   LPToken: 'shares',
 };
 
-/**
- * Try to read balance from the data field without decrypting.
- * The Leo Wallet may return plaintext values in data for records it owns.
- * Returns 0n if the field is missing, a ciphertext, or unparseable.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function tryReadBalance(data: any, field: string): bigint {
-  const raw = data?.[field];
-  if (!raw || typeof raw !== 'string') return 0n;
-  if (raw.startsWith('ciphertext') || raw.startsWith('record')) return 0n;
-  const match = raw.match(/(\d+)u\d+/);
-  return match ? BigInt(match[1]) : 0n;
+function parseDecryptedBalance(decrypted: string, field: string): bigint {
+  const match = decrypted.match(new RegExp(`${field}:\\s*(\\d+)u\\d+`));
+  return BigInt(match?.[1] ?? '0');
 }
 
 export function useRecord(recordName: RecordName) {
@@ -56,38 +54,30 @@ export function useRecord(recordName: RecordName) {
 
       const field = BALANCE_FIELD[recordName];
 
-      // Step 1: try to read balances from data field — no decrypt calls needed
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const withBalances = matches.map((r: any) => ({
-        r,
-        balance: tryReadBalance(r.data, field),
-      }));
+      // Decrypt all records — UponRequest permission means wallet prompts once
+      // then allows silently for the session. Accurate totals are worth it.
+      const entries: RecordEntry[] = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        matches.map(async (r: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const decrypted: string = await (decrypt as any)(r.recordCiphertext);
+          const balance = parseDecryptedBalance(decrypted, field);
+          return { ciphertext: r.recordCiphertext, decrypted, balance };
+        })
+      );
 
-      const totalFromData = withBalances.reduce((s, x) => s + x.balance, 0n);
-      const dataBalancesAvailable = totalFromData > 0n;
+      // Sort descending — best (highest balance) first
+      entries.sort((a, b) => (b.balance > a.balance ? 1 : -1));
 
-      // Step 2: pick the best record (highest balance). If data was unreadable,
-      // fall back to the last record (most recently received).
-      const best = dataBalancesAvailable
-        ? withBalances.reduce((a, b) => (b.balance > a.balance ? b : a)).r
-        : matches[matches.length - 1];
-
-      // Step 3: decrypt only the ONE best record — at most one wallet prompt
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const decrypted: string = await (decrypt as any)(best.recordCiphertext);
-
-      // Parse balance from decrypted string as authoritative source for best record
-      const match = decrypted.match(new RegExp(`${field}:\\s*(\\d+)u\\d+`));
-      const bestBalance = BigInt(match?.[1] ?? '0');
-
-      // Total: sum from data if available, otherwise just the decrypted best
-      const totalBalance = dataBalancesAvailable ? totalFromData : bestBalance;
+      const totalBalance = entries.reduce((s, e) => s + e.balance, 0n);
+      const best = entries[0];
 
       setRecord({
-        ciphertext: best.recordCiphertext,
-        decrypted,
-        balance: totalBalance,
-        count: matches.length,
+        ciphertext: best.ciphertext,
+        decrypted:  best.decrypted,
+        balance:    totalBalance,
+        count:      entries.length,
+        all:        entries,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to fetch records from wallet');

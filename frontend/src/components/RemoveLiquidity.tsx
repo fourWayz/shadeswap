@@ -36,7 +36,7 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
 
   const maxShares = lp.record?.balance ?? 0n;
 
-  // Parse shares: the user types in human-readable (6 decimals)
+  // Parse shares
   const sharesRaw = (() => {
     if (!sharesStr) return 0n;
     const [w, f = ''] = sharesStr.split('.');
@@ -77,7 +77,7 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
     <>
       <div className="space-y-4">
         {/* LP record fetch */}
-        <RecordCard label="LP Token Record" hook={lp} tokenSymbol="LP" />
+        <RecordCard label="LP Token Record" hook={lp} tokenSymbol="LP" tokenType="LPToken" />
 
         {/* Shares input — auto-filled from record */}
         <div
