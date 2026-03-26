@@ -1,4 +1,4 @@
-program shadeswap.aleo;
+program shadeswap_v2.aleo;
 
 record Token0:
     owner as address.private;
@@ -34,7 +34,7 @@ mapping pool_initialized:
 
 function initialize_pool:
     async initialize_pool self.caller into r0;
-    output r0 as shadeswap.aleo/initialize_pool.future;
+    output r0 as shadeswap_v2.aleo/initialize_pool.future;
 
 finalize initialize_pool:
     input r0 as address.public;
@@ -55,7 +55,7 @@ function mint_token0:
     cast r0 r1 into r3 as Token0.record;
     async mint_token0 self.caller into r4;
     output r3 as Token0.record;
-    output r4 as shadeswap.aleo/mint_token0.future;
+    output r4 as shadeswap_v2.aleo/mint_token0.future;
 
 finalize mint_token0:
     input r0 as address.public;
@@ -121,7 +121,7 @@ function add_liquidity:
     output r10 as Token0.record;
     output r12 as Token1.record;
     output r13 as LPToken.record;
-    output r14 as shadeswap.aleo/add_liquidity.future;
+    output r14 as shadeswap_v2.aleo/add_liquidity.future;
 
 finalize add_liquidity:
     input r0 as address.public;
@@ -202,7 +202,7 @@ function remove_liquidity:
     output r6 as Token0.record;
     output r7 as Token1.record;
     output r9 as LPToken.record;
-    output r10 as shadeswap.aleo/remove_liquidity.future;
+    output r10 as shadeswap_v2.aleo/remove_liquidity.future;
 
 finalize remove_liquidity:
     input r0 as address.public;
@@ -245,7 +245,7 @@ function swap_0_for_1:
     async swap_0_for_1 r1 r2 into r8;
     output r6 as Token0.record;
     output r7 as Token1.record;
-    output r8 as shadeswap.aleo/swap_0_for_1.future;
+    output r8 as shadeswap_v2.aleo/swap_0_for_1.future;
 
 finalize swap_0_for_1:
     input r0 as u128.public;
@@ -288,7 +288,7 @@ function swap_1_for_0:
     async swap_1_for_0 r1 r2 into r8;
     output r6 as Token1.record;
     output r7 as Token0.record;
-    output r8 as shadeswap.aleo/swap_1_for_0.future;
+    output r8 as shadeswap_v2.aleo/swap_1_for_0.future;
 
 finalize swap_1_for_0:
     input r0 as u128.public;

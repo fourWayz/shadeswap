@@ -32,7 +32,7 @@ export interface RemoveLiquidityParams {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const PROGRAM_ID = 'shadeswap.aleo';
+export const PROGRAM_ID = 'shadeswap_v2.aleo';
 export const NETWORK    = 'testnet';
 export const API_URL    = 'https://api.provable.com/v2/testnet';
 export const DECIMALS   = 6;

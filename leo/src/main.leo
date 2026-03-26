@@ -2,7 +2,7 @@
  * ShadeSwap — Private AMM on Aleo
  * Similar to Uniswap v2, but balances and trades stay private
  */
-program shadeswap.aleo {
+program shadeswap_v4.aleo {
 
     /** 0.3% fee (Uniswap-style) */
     const FEE_NUMERATOR: u128   = 3u128;
@@ -91,7 +91,7 @@ program shadeswap.aleo {
 
     @noupgrade
     async constructor(
-    ) {}
+        ) {}
 
     /**
      * Initializes the pool (only once)
@@ -232,8 +232,10 @@ program shadeswap.aleo {
         let raw_sqrt: u128     = isqrt(amount0 * amount1);
         let first_shares: u128 = (raw_sqrt > MINIMUM_LIQUIDITY) ? raw_sqrt - MINIMUM_LIQUIDITY : 0u128;
 
-        let shares0: u128           = (r0 > 0u128) ? (amount0 * total_lp) / r0 : 0u128;
-        let shares1: u128           = (r1 > 0u128) ? (amount1 * total_lp) / r1 : 0u128;
+        let safe_r0: u128           = (r0 == 0u128) ? 1u128 : r0;
+        let safe_r1: u128           = (r1 == 0u128) ? 1u128 : r1;
+        let shares0: u128           = (amount0 * total_lp) / safe_r0;
+        let shares1: u128           = (amount1 * total_lp) / safe_r1;
         let subsequent_shares: u128 = min_u128(shares0, shares1);
 
         let shares: u128 = (total_lp == 0u128) ? first_shares : subsequent_shares;
@@ -244,9 +246,6 @@ program shadeswap.aleo {
         Mapping::set(reserve0,        POOL_ID, r0 + amount0);
         Mapping::set(reserve1,        POOL_ID, r1 + amount1);
         Mapping::set(lp_total_supply, POOL_ID, total_lp + shares);
-
-
-        
     }
 
 

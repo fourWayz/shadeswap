@@ -1,5 +1,5 @@
 {
-  "program": "shadeswap.aleo",
+  "program": "shadeswap_v2.aleo",
   "structs": [],
   "records": [
     {
@@ -180,7 +180,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -223,7 +223,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -241,7 +241,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -274,7 +274,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -285,7 +285,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -303,7 +303,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -336,7 +336,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -347,7 +347,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -365,7 +365,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -377,7 +377,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -423,7 +423,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -434,7 +434,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -445,7 +445,7 @@
               "path": [
                 "LPToken"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -467,7 +467,7 @@
               "path": [
                 "LPToken"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -513,7 +513,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -524,7 +524,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -535,7 +535,7 @@
               "path": [
                 "LPToken"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -557,7 +557,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -592,7 +592,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -603,7 +603,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -625,7 +625,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "Private"
@@ -660,7 +660,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"
@@ -671,7 +671,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap"
+              "program": "shadeswap_v2"
             }
           },
           "mode": "None"

@@ -62,7 +62,7 @@ ZK proof generated off-chain
    — swap amount computed privately
    — trader identity never exposed
        ↓
-shadeswap.aleo on-chain
+shadeswap_v2.aleo on-chain
    transition: consume token record → produce new token record
    finalize:   update public pool reserves only
 ```
@@ -83,7 +83,7 @@ The `swap` transitions take a `min_out` parameter. In `finalize`, the contract r
 
 ---
 
-## Contract: `shadeswap.aleo`
+## Contract: `shadeswap_v2.aleo`
 
 ### Records (private state)
 
