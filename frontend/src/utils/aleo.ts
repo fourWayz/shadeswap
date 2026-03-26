@@ -169,8 +169,8 @@ export async function fetchReserves(): Promise<Reserves> {
 
   const parse = (s: string | null): bigint => {
     if (!s) return 0n;
-    // Values come back as "123456u128" — extract leading digits only
-    const clean = s.match(/^\d+/)?.[0] ?? '';
+    const unquoted = s.replace(/^"|"$/g, '');
+    const clean = unquoted.match(/^\d+/)?.[0] ?? '';
     return clean ? BigInt(clean) : 0n;
   };
 

@@ -31,6 +31,7 @@ const TOKEN_NAMES: Record<Direction, [string, string]> = {
 };
 
 export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
+  console.log(reserves)
   const { connected } = useWallet();
   const { status, txId, error, execute, reset } = useTransaction();
 
