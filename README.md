@@ -1,10 +1,13 @@
-# ShadeSwap 🌑
+# ShadeSwap
 
 > The private spot AMM DEX on Aleo — swap tokens without revealing who you are or how much you traded.
 
 [![Aleo Testnet](https://img.shields.io/badge/Aleo-Testnet-blue)](https://explorer.aleo.org)
 [![Leo v2.0](https://img.shields.io/badge/Leo-v2.0-green)](https://docs.leo-lang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
+**Live Demo:** [https://shadeswap-ten.vercel.app/]
+**Deployed Contract:** [https://testnet.explorer.provable.com/program/shadeswap_v5.aleo]
 
 ---
 
@@ -49,22 +52,98 @@ Together they form a complete private trading ecosystem. ShadeSwap specifically 
 
 ---
 
+## Architecture
+
+### System overview
+
+```mermaid
+graph TB
+    subgraph Browser["User Browser"]
+        FE["Next.js Frontend\n/swap /pool /stats /faucet"]
+        WA["Leo Wallet Extension\n- holds private records\n- signs transactions\n- generates ZK proofs\n- decrypts ciphertexts"]
+        FE <-->|"@provablehq/wallet-adapter"| WA
+    end
+
+    subgraph Aleo["Aleo Testnet"]
+        subgraph Contract["shadeswap_v5.aleo"]
+            TR["Transitions (private)\nswap_0_for_1 / swap_1_for_0\nadd_liquidity / remove_liquidity\nmerge_token0 / merge_token1"]
+            FN["Finalize (public)\nre-verify AMM math\ncheck k-invariant\ncheck min_out slippage"]
+            REC["Private Records\nToken0 { owner, amount }\nToken1 { owner, amount }\nLPToken { owner, shares }"]
+            MAP["Public Mappings\nreserve0 / reserve1\nlp_total_supply\nadmin / pool_initialized"]
+        end
+        TR -->|"consumes & produces"| REC
+        TR -->|"calls"| FN
+        FN -->|"updates"| MAP
+    end
+
+    FE -->|"reads reserves & prices"| MAP
+    WA -->|"executeTransaction"| TR
+```
+
+### Swap flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant W as Leo Wallet
+    participant C as shadeswap_v5.aleo
+
+    User->>FE: enter amount
+    FE->>C: read reserve0, reserve1
+    C-->>FE: public mapping values
+    FE-->>User: show amountOut, price impact
+
+    User->>FE: click Swap
+    FE->>W: executeTransaction(swap_1_for_0)
+    W->>W: generate ZK proof locally\n(proves record ownership,\nnever reveals amount)
+    W->>C: submit proof + transition
+
+    Note over C: transition (private)\nconsume Token1 record\nproduce Token1 change record\nproduce Token0 output record
+
+    Note over C: finalize (public)\nre-compute amountOut\nassert amountOut ≥ minOut\nassert new_r0 × new_r1 ≥ r0 × r1\nupdate reserve0, reserve1
+
+    C-->>W: confirmed
+    W-->>FE: transaction id
+    FE-->>User: Swap confirmed ✓
+```
+
+### Privacy boundary
+
+```mermaid
+graph LR
+    subgraph Private["🔒 Private — ZK encrypted, never on-chain"]
+        B["token balances"]
+        S["swap amounts"]
+        I["trader identity"]
+        L["LP position sizes"]
+    end
+
+    subgraph Public["🌐 Public — on-chain mappings, visible to all"]
+        R["pool reserve totals"]
+        P["current price ratio"]
+        T["total LP supply"]
+    end
+
+    Private -.-|"ZK proof bridges\nprivate ↔ public"| Public
+```
+
+---
+
 ## How It Works
 
 ### Privacy model
 
-```
-User wallet (private records)
-       ↓
-Frontend dApp (Aleo Wallet Adapter + JS SDK)
-       ↓
-ZK proof generated off-chain
-   — swap amount computed privately
-   — trader identity never exposed
-       ↓
-shadeswap_v4.aleo on-chain
-   transition: consume token record → produce new token record
-   finalize:   update public pool reserves only
+```mermaid
+flowchart TD
+    A["User wallet\n(private records)"]
+    B["Frontend dApp\nAleo Wallet Adapter + JS SDK"]
+    C["ZK proof generated off-chain\n— swap amount computed privately\n— trader identity never exposed"]
+    D["shadeswap_v5.aleo on-chain"]
+    E["transition\nconsume token record → produce new token record"]
+    F["finalize\nupdate public pool reserves only"]
+
+    A --> B --> C --> D --> E & F
 ```
 
 ### Constant-product formula with fee
@@ -83,23 +162,23 @@ The `swap` transitions take a `min_out` parameter. In `finalize`, the contract r
 
 ---
 
-## Contract: `shadeswap_v4.aleo`
+## Contract: `shadeswap_v5.aleo`
 
 ### Records (private state)
 
 ```leo
-record Token0 { owner: address, amount: u128 }
-record Token1 { owner: address, amount: u128 }
+record Token0  { owner: address, amount: u128 }
+record Token1  { owner: address, amount: u128 }
 record LPToken { owner: address, shares: u128 }  // your pool share, hidden
 ```
 
 ### Mappings (public state)
 
 ```leo
-mapping reserve0: u8 => u128        // pool reserves, visible for pricing
-mapping reserve1: u8 => u128
-mapping lp_total_supply: u8 => u128
-mapping admin: u8 => address
+mapping reserve0:         u8 => u128   // pool reserves, visible for pricing
+mapping reserve1:         u8 => u128
+mapping lp_total_supply:  u8 => u128
+mapping admin:            u8 => address
 mapping pool_initialized: u8 => bool
 ```
 
@@ -110,59 +189,45 @@ mapping pool_initialized: u8 => bool
 | 1 | `initialize_pool()` | Public — one-time setup |
 | 2 | `mint_token0/1(recipient, amount)` | Private — admin issues token records |
 | 3 | `transfer_token0/1(token, recipient, amount)` | Fully private — P2P, no trace |
-| 4 | `add_liquidity(t0, t1, amt0, amt1, min_shares)` | Private deposit, public reserve update |
-| 5 | `remove_liquidity(lp, shares, min0, min1)` | Private LP burn, private token return |
-| 6 | `swap_0_for_1(token_in, amount_in, min_out)` | Fully private — trader never revealed |
-| 7 | `swap_1_for_0(token_in, amount_in, min_out)` | Same, reverse direction |
+| 4 | `merge_token0/1(r1, r2)` | Fully private — consolidate UTXO records |
+| 5 | `add_liquidity(t0, t1, amt0, amt1, min_shares)` | Private deposit, public reserve update |
+| 6 | `remove_liquidity(lp, shares, min0, min1)` | Private LP burn, private token return |
+| 7 | `swap_0_for_1(token_in, amount_in, min_out)` | Fully private — trader never revealed |
+| 8 | `swap_1_for_0(token_in, amount_in, min_out)` | Same, reverse direction |
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-
-```bash
-curl -sSf https://aleo.tools/install | sh   # installs Leo + Aleo CLI
-leo --version   # should be 2.x
-```
-
 ### Build
 
 ```bash
 git clone https://github.com/yourname/shadeswap
-cd shadeswap
+cd shadeswap/leo
 leo build
 ```
 
-### Run locally
+### Run the Frontend
 
 ```bash
-# 1. Initialize the pool
-leo run initialize_pool
-
-# 2. Mint tokens to yourself
-leo run mint_token0  aleo1youradress...  1000000u128
-leo run mint_token1  aleo1youraddress... 1000000u128
-
-# 3. Add liquidity (deposits 500k of each token, min 0 shares — set higher in prod)
-leo run add_liquidity \
-  '{owner: aleo1..., amount: 1000000u128}' \
-  '{owner: aleo1..., amount: 1000000u128}' \
-  500000u128 500000u128 0u128
-
-# 4. Swap 1000 token0 for at least 990 token1 (0.1% slippage tolerance)
-leo run swap_0_for_1 \
-  '{owner: aleo1..., amount: 500000u128}' \
-  1000u128 990u128
+cd frontend
+npm install
+npm run dev
+# open http://localhost:3000
 ```
 
 ### Deploy to Aleo Testnet
 
 ```bash
-leo deploy --network testnet
+cd leo
+snarkos developer deploy shadeswap_v5.aleo \
+  --path ./build \
+  --private-key <YOUR_PRIVATE_KEY> \
+  --endpoint https://api.explorer.provable.com/v2 \
+  --network 1 \
+  --broadcast \
+  --priority-fee 1000000
 ```
-
-Get testnet ALEO for fees: https://faucet.aleo.org
 
 ---
 
@@ -176,25 +241,22 @@ Mappings are stored publicly on-chain — anyone can read your balance. Records 
 
 Deliberate. Transparent pricing is a feature, not a bug — it lets users compute fair swap rates and prevents the pool from being manipulated silently. Only *who* swaps and *how much* stays hidden.
 
-### The `isqrt` helper
+### AVM ternary evaluation
 
-Leo has no built-in square root. For the first liquidity deposit, shares are computed as `sqrt(amount0 × amount1)`. ShadeSwap implements this via 8 Babylonian iterations, giving correct floor-sqrt for all realistic liquidity amounts.
+Aleo's VM evaluates **both branches** of every ternary before selecting the result. This caused division-by-zero in `finalize_add_liquidity` on first deposit when reserves were zero — the guard `(r0 > 0) ? x / r0 : 0` panics because `x / 0` executes regardless. Fixed with a safe denominator:
+
+```leo
+let safe_r0: u128 = (r0 == 0u128) ? 1u128 : r0;
+let shares0: u128 = (amount0 * total_lp) / safe_r0;
+```
+
+### Record consolidation (`merge`)
+
+Aleo's UTXO model creates a new record on every swap output. Without consolidation, users accumulate multiple small records and hit balance limitations. ShadeSwap adds `merge_token0` and `merge_token1` — pure private transitions with no finalize — so the frontend can consolidate records in one click.
 
 ### `MINIMUM_LIQUIDITY` lock
 
 On the first deposit, 1000 shares are permanently locked. This prevents a classic AMM price manipulation attack where an attacker drains the pool to near-zero to distort pricing.
-
-### Safe subtraction pattern
-
-Leo evaluates both branches of ternary operators, which can cause underflow. All subtractions in ShadeSwap use the cap-then-subtract pattern:
-```leo
-// ❌ unsafe — Leo evaluates `a - b` even when false
-let result: u64 = a > b ? a - b : 0u64;
-
-// ✅ safe
-let capped_b: u64 = b <= a ? b : a;
-let result: u64 = a - capped_b;
-```
 
 ---
 
@@ -211,6 +273,16 @@ let result: u64 = a - capped_b;
 
 ---
 
+## Current Limitations
+
+- **Single pool:** One SHADE/USDC pair. Multi-pool support requires a pool registry pattern not yet implemented.
+- **No price oracle:** Prices derive solely from pool reserves with no TWAP or external feed.
+- **Non-transferable LP tokens:** LP records cannot be transferred or used as collateral in other protocols.
+- **Single-record transactions:** Each operation consumes one record at a time. Users with balances split across multiple records must merge before transacting.
+- **Admin-only Token0 minting:** SHADE requires admin to mint, centralising initial distribution.
+
+---
+
 ## Roadmap
 
 - [x] Core AMM contract (constant-product, 0.3% fee)
@@ -218,9 +290,13 @@ let result: u64 = a - capped_b;
 - [x] Private LP records
 - [x] Slippage protection
 - [x] k-invariant on-chain enforcement
-- [ ] Frontend (React + Aleo Wallet Adapter)
+- [x] Record consolidation (merge functions)
+- [x] Full React frontend with wallet adapter
+- [x] Testnet faucet for open USDC minting
+- [x] Live pool stats and price impact warnings
 - [ ] Multi-pool support (multiple token pairs)
-- [ ] USDCx (Aleo testnet stablecoin) integration
+- [ ] Transferable LP tokens
+- [ ] TWAP price oracle
 - [ ] Private limit orders
 - [ ] Mainnet deployment
 
@@ -231,8 +307,7 @@ let result: u64 = a - capped_b;
 - [Aleo Developer Docs](https://developer.aleo.org)
 - [Leo Language Docs](https://docs.leo-lang.org)
 - [Aleo Testnet Faucet](https://faucet.aleo.org)
-- [Aleo Explorer](https://explorer.aleo.org)
-- [Shield Wallet](https://www.shieldwallet.xyz)
+- [Provable Explorer](https://testnet.explorer.provable.com)
 
 ---
 
