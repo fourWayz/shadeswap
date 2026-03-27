@@ -52,22 +52,98 @@ Together they form a complete private trading ecosystem. ShadeSwap specifically 
 
 ---
 
+## Architecture
+
+### System overview
+
+```mermaid
+graph TB
+    subgraph Browser["User Browser"]
+        FE["Next.js Frontend\n/swap /pool /stats /faucet"]
+        WA["Leo Wallet Extension\n- holds private records\n- signs transactions\n- generates ZK proofs\n- decrypts ciphertexts"]
+        FE <-->|"@provablehq/wallet-adapter"| WA
+    end
+
+    subgraph Aleo["Aleo Testnet"]
+        subgraph Contract["shadeswap_v5.aleo"]
+            TR["Transitions (private)\nswap_0_for_1 / swap_1_for_0\nadd_liquidity / remove_liquidity\nmerge_token0 / merge_token1"]
+            FN["Finalize (public)\nre-verify AMM math\ncheck k-invariant\ncheck min_out slippage"]
+            REC["Private Records\nToken0 { owner, amount }\nToken1 { owner, amount }\nLPToken { owner, shares }"]
+            MAP["Public Mappings\nreserve0 / reserve1\nlp_total_supply\nadmin / pool_initialized"]
+        end
+        TR -->|"consumes & produces"| REC
+        TR -->|"calls"| FN
+        FN -->|"updates"| MAP
+    end
+
+    FE -->|"reads reserves & prices"| MAP
+    WA -->|"executeTransaction"| TR
+```
+
+### Swap flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant W as Leo Wallet
+    participant C as shadeswap_v5.aleo
+
+    User->>FE: enter amount
+    FE->>C: read reserve0, reserve1
+    C-->>FE: public mapping values
+    FE-->>User: show amountOut, price impact
+
+    User->>FE: click Swap
+    FE->>W: executeTransaction(swap_1_for_0)
+    W->>W: generate ZK proof locally\n(proves record ownership,\nnever reveals amount)
+    W->>C: submit proof + transition
+
+    Note over C: transition (private)\nconsume Token1 record\nproduce Token1 change record\nproduce Token0 output record
+
+    Note over C: finalize (public)\nre-compute amountOut\nassert amountOut ≥ minOut\nassert new_r0 × new_r1 ≥ r0 × r1\nupdate reserve0, reserve1
+
+    C-->>W: confirmed
+    W-->>FE: transaction id
+    FE-->>User: Swap confirmed ✓
+```
+
+### Privacy boundary
+
+```mermaid
+graph LR
+    subgraph Private["🔒 Private — ZK encrypted, never on-chain"]
+        B["token balances"]
+        S["swap amounts"]
+        I["trader identity"]
+        L["LP position sizes"]
+    end
+
+    subgraph Public["🌐 Public — on-chain mappings, visible to all"]
+        R["pool reserve totals"]
+        P["current price ratio"]
+        T["total LP supply"]
+    end
+
+    Private -.-|"ZK proof bridges\nprivate ↔ public"| Public
+```
+
+---
+
 ## How It Works
 
 ### Privacy model
 
-```
-User wallet (private records)
-       ↓
-Frontend dApp (Aleo Wallet Adapter + JS SDK)
-       ↓
-ZK proof generated off-chain
-   — swap amount computed privately
-   — trader identity never exposed
-       ↓
-shadeswap_v5.aleo on-chain
-   transition: consume token record → produce new token record
-   finalize:   update public pool reserves only
+```mermaid
+flowchart TD
+    A["User wallet\n(private records)"]
+    B["Frontend dApp\nAleo Wallet Adapter + JS SDK"]
+    C["ZK proof generated off-chain\n— swap amount computed privately\n— trader identity never exposed"]
+    D["shadeswap_v5.aleo on-chain"]
+    E["transition\nconsume token record → produce new token record"]
+    F["finalize\nupdate public pool reserves only"]
+
+    A --> B --> C --> D --> E & F
 ```
 
 ### Constant-product formula with fee
