@@ -19,6 +19,7 @@ import {
 } from '@/src/utils/aleo';
 import { useWallet } from '@provablehq/aleo-wallet-adaptor-react';
 import { TOKEN0_SYMBOL, TOKEN1_SYMBOL } from '@/src/utils/tokens';
+import { PrivacyVisualizer } from './PrivacyVisualizer';
 
 interface SwapPanelProps {
   reserves: Reserves | null;
@@ -268,6 +269,13 @@ export function SwapPanel({ reserves, getAmountOut }: SwapPanelProps) {
       </div>
 
       <TxStatusCard status={status} txId={txId} error={error} onClose={reset} successMessage="Swap confirmed!" successSubtext="Your trade settled privately" />
+
+      <PrivacyVisualizer
+        amountIn={amountInBig}
+        amountOut={amountOutBig}
+        direction={direction}
+        reserves={reserves}
+      />
     </>
   );
 }
