@@ -140,7 +140,7 @@ export function FaucetPanel() {
                     className="text-xs"
                     style={{ color: 'var(--shade-muted)', fontFamily: 'var(--font-space-mono)' }}
                   >
-                    Admin-minted · You can Swap USDC → SHADE 
+                    Admin-minted · Swap USDC → SHADE
                   </p>
                 </div>
               </div>
