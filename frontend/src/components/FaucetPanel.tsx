@@ -140,7 +140,7 @@ export function FaucetPanel() {
                     className="text-xs"
                     style={{ color: 'var(--shade-muted)', fontFamily: 'var(--font-space-mono)' }}
                   >
-                    Admin-minted · Swap USDC → SHADE after pool launches
+                    Admin-minted · You can Swap USDC → SHADE 
                   </p>
                 </div>
               </div>
