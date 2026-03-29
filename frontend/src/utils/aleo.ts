@@ -20,19 +20,22 @@ export interface AddLiquidityParams {
   t1Record: string;
   amount0: bigint;
   amount1: bigint;
+  expectedShares: bigint;
   minShares: bigint;
 }
 
 export interface RemoveLiquidityParams {
   lpRecord: string;
   shares: bigint;
+  amount0: bigint;
+  amount1: bigint;
   minAmount0: bigint;
   minAmount1: bigint;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const PROGRAM_ID = 'shadeswap_v5.aleo';
+export const PROGRAM_ID = 'shadeswap_v7.aleo';
 export const NETWORK    = 'testnet';
 export const API_URL    = 'https://api.provable.com/v2/testnet';
 export const DECIMALS   = 6;
@@ -43,7 +46,7 @@ const MINIMUM_LIQUIDITY = 1000n;
 
 // ── Formatting ────────────────────────────────────────────────────────────────
 
-/** Convert on-chain bigint  */
+/** Convert on-chain bigint (6 decimals) to human-readable string */
 export function formatAmount(amount: bigint, decimals = DECIMALS): string {
   const d = BigInt(10 ** decimals);
   const whole = amount / d;
@@ -169,6 +172,7 @@ export async function fetchReserves(): Promise<Reserves> {
 
   const parse = (s: string | null): bigint => {
     if (!s) return 0n;
+    // API returns JSON-quoted strings: "1000000000u128" — strip quotes then extract digits
     const unquoted = s.replace(/^"|"$/g, '');
     const clean = unquoted.match(/^\d+/)?.[0] ?? '';
     return clean ? BigInt(clean) : 0n;
@@ -182,6 +186,7 @@ export async function fetchReserves(): Promise<Reserves> {
 }
 
 // ── Transaction builders ──────────────────────────────────────────────────────
+// Returns AleoTxOptions — the flat shape that executeTransaction expects
 
 export interface AleoTxOptions {
   program: string;
@@ -214,6 +219,7 @@ export function buildAddLiquidityTransaction(params: AddLiquidityParams): AleoTx
       params.t1Record,
       `${params.amount0}u128`,
       `${params.amount1}u128`,
+      `${params.expectedShares}u128`,
       `${params.minShares}u128`,
     ],
     fee: 1_500_000,
@@ -238,6 +244,8 @@ export function buildRemoveLiquidityTransaction(params: RemoveLiquidityParams): 
     inputs: [
       params.lpRecord,
       `${params.shares}u128`,
+      `${params.amount0}u128`,
+      `${params.amount1}u128`,
       `${params.minAmount0}u128`,
       `${params.minAmount1}u128`,
     ],

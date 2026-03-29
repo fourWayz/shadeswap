@@ -1,4 +1,4 @@
-program shadeswap_v5.aleo;
+program shadeswap_v7.aleo;
 
 record Token0:
     owner as address.private;
@@ -34,7 +34,7 @@ mapping pool_initialized:
 
 function initialize_pool:
     async initialize_pool self.caller into r0;
-    output r0 as shadeswap_v5.aleo/initialize_pool.future;
+    output r0 as shadeswap_v7.aleo/initialize_pool.future;
 
 finalize initialize_pool:
     input r0 as address.public;
@@ -55,7 +55,7 @@ function mint_token0:
     cast r0 r1 into r3 as Token0.record;
     async mint_token0 self.caller into r4;
     output r3 as Token0.record;
-    output r4 as shadeswap_v5.aleo/mint_token0.future;
+    output r4 as shadeswap_v7.aleo/mint_token0.future;
 
 finalize mint_token0:
     input r0 as address.public;
@@ -118,34 +118,37 @@ function add_liquidity:
     input r2 as u128.private;
     input r3 as u128.private;
     input r4 as u128.private;
-    gt r2 0u128 into r5;
-    assert.eq r5 true;
-    gt r3 0u128 into r6;
+    input r5 as u128.private;
+    gt r2 0u128 into r6;
     assert.eq r6 true;
-    gte r0.amount r2 into r7;
+    gt r3 0u128 into r7;
     assert.eq r7 true;
-    gte r1.amount r3 into r8;
+    gte r0.amount r2 into r8;
     assert.eq r8 true;
-    sub r0.amount r2 into r9;
-    cast self.signer r9 into r10 as Token0.record;
-    sub r1.amount r3 into r11;
-    cast self.signer r11 into r12 as Token1.record;
-    cast self.signer r2 into r13 as LPToken.record;
-    async add_liquidity self.signer r2 r3 r4 into r14;
-    output r10 as Token0.record;
-    output r12 as Token1.record;
-    output r13 as LPToken.record;
-    output r14 as shadeswap_v5.aleo/add_liquidity.future;
+    gte r1.amount r3 into r9;
+    assert.eq r9 true;
+    gte r4 r5 into r10;
+    assert.eq r10 true;
+    sub r0.amount r2 into r11;
+    cast self.signer r11 into r12 as Token0.record;
+    sub r1.amount r3 into r13;
+    cast self.signer r13 into r14 as Token1.record;
+    cast self.signer r4 into r15 as LPToken.record;
+    async add_liquidity r2 r3 r4 r5 into r16;
+    output r12 as Token0.record;
+    output r14 as Token1.record;
+    output r15 as LPToken.record;
+    output r16 as shadeswap_v7.aleo/add_liquidity.future;
 
 finalize add_liquidity:
-    input r0 as address.public;
+    input r0 as u128.public;
     input r1 as u128.public;
     input r2 as u128.public;
     input r3 as u128.public;
     get.or_use reserve0[0u8] 0u128 into r4;
     get.or_use reserve1[0u8] 0u128 into r5;
     get.or_use lp_total_supply[0u8] 0u128 into r6;
-    mul r1 r2 into r7;
+    mul r0 r1 into r7;
     div r7 2u128 into r8;
     div r7 r8 into r9;
     add r8 r9 into r10;
@@ -180,70 +183,83 @@ finalize add_liquidity:
     ternary r38 1u128 r4 into r39;
     is.eq r5 0u128 into r40;
     ternary r40 1u128 r5 into r41;
-    mul r1 r6 into r42;
+    mul r0 r6 into r42;
     div r42 r39 into r43;
-    mul r2 r6 into r44;
+    mul r1 r6 into r44;
     div r44 r41 into r45;
     lt r43 r45 into r46;
     ternary r46 r43 r45 into r47;
     is.eq r6 0u128 into r48;
     ternary r48 r37 r47 into r49;
-    gte r49 r3 into r50;
+    gte r49 r2 into r50;
     assert.eq r50 true;
-    gt r49 0u128 into r51;
+    gte r2 r3 into r51;
     assert.eq r51 true;
-    add r4 r1 into r52;
-    set r52 into reserve0[0u8];
-    add r5 r2 into r53;
-    set r53 into reserve1[0u8];
-    add r6 r49 into r54;
-    set r54 into lp_total_supply[0u8];
+    gt r2 0u128 into r52;
+    assert.eq r52 true;
+    add r4 r0 into r53;
+    set r53 into reserve0[0u8];
+    add r5 r1 into r54;
+    set r54 into reserve1[0u8];
+    add r6 r2 into r55;
+    set r55 into lp_total_supply[0u8];
 
 function remove_liquidity:
     input r0 as LPToken.record;
     input r1 as u128.private;
     input r2 as u128.private;
     input r3 as u128.private;
-    gt r1 0u128 into r4;
-    assert.eq r4 true;
-    gte r0.shares r1 into r5;
-    assert.eq r5 true;
-    cast self.signer 1u128 into r6 as Token0.record;
-    cast self.signer 1u128 into r7 as Token1.record;
-    sub r0.shares r1 into r8;
-    cast self.signer r8 into r9 as LPToken.record;
-    async remove_liquidity self.signer r1 r2 r3 into r10;
-    output r6 as Token0.record;
-    output r7 as Token1.record;
-    output r9 as LPToken.record;
-    output r10 as shadeswap_v5.aleo/remove_liquidity.future;
+    input r4 as u128.private;
+    input r5 as u128.private;
+    gt r1 0u128 into r6;
+    assert.eq r6 true;
+    gte r0.shares r1 into r7;
+    assert.eq r7 true;
+    gte r2 r4 into r8;
+    assert.eq r8 true;
+    gte r3 r5 into r9;
+    assert.eq r9 true;
+    cast self.signer r2 into r10 as Token0.record;
+    cast self.signer r3 into r11 as Token1.record;
+    sub r0.shares r1 into r12;
+    cast self.signer r12 into r13 as LPToken.record;
+    async remove_liquidity r1 r2 r3 r4 r5 into r14;
+    output r10 as Token0.record;
+    output r11 as Token1.record;
+    output r13 as LPToken.record;
+    output r14 as shadeswap_v7.aleo/remove_liquidity.future;
 
 finalize remove_liquidity:
-    input r0 as address.public;
+    input r0 as u128.public;
     input r1 as u128.public;
     input r2 as u128.public;
     input r3 as u128.public;
-    get reserve0[0u8] into r4;
-    get reserve1[0u8] into r5;
-    get lp_total_supply[0u8] into r6;
-    gt r6 0u128 into r7;
-    assert.eq r7 true;
-    lte r1 r6 into r8;
+    input r4 as u128.public;
+    get reserve0[0u8] into r5;
+    get reserve1[0u8] into r6;
+    get lp_total_supply[0u8] into r7;
+    gt r7 0u128 into r8;
     assert.eq r8 true;
-    mul r1 r4 into r9;
-    div r9 r6 into r10;
-    mul r1 r5 into r11;
-    div r11 r6 into r12;
-    gte r10 r2 into r13;
-    assert.eq r13 true;
-    gte r12 r3 into r14;
+    lte r0 r7 into r9;
+    assert.eq r9 true;
+    mul r0 r5 into r10;
+    div r10 r7 into r11;
+    mul r0 r6 into r12;
+    div r12 r7 into r13;
+    gte r11 r1 into r14;
     assert.eq r14 true;
-    sub r4 r10 into r15;
-    set r15 into reserve0[0u8];
-    sub r5 r12 into r16;
-    set r16 into reserve1[0u8];
-    sub r6 r1 into r17;
-    set r17 into lp_total_supply[0u8];
+    gte r13 r2 into r15;
+    assert.eq r15 true;
+    gte r1 r3 into r16;
+    assert.eq r16 true;
+    gte r2 r4 into r17;
+    assert.eq r17 true;
+    sub r5 r1 into r18;
+    set r18 into reserve0[0u8];
+    sub r6 r2 into r19;
+    set r19 into reserve1[0u8];
+    sub r7 r0 into r20;
+    set r20 into lp_total_supply[0u8];
 
 function swap_0_for_1:
     input r0 as Token0.record;
@@ -259,7 +275,7 @@ function swap_0_for_1:
     async swap_0_for_1 r1 r2 into r8;
     output r6 as Token0.record;
     output r7 as Token1.record;
-    output r8 as shadeswap_v5.aleo/swap_0_for_1.future;
+    output r8 as shadeswap_v7.aleo/swap_0_for_1.future;
 
 finalize swap_0_for_1:
     input r0 as u128.public;
@@ -302,7 +318,7 @@ function swap_1_for_0:
     async swap_1_for_0 r1 r2 into r8;
     output r6 as Token1.record;
     output r7 as Token0.record;
-    output r8 as shadeswap_v5.aleo/swap_1_for_0.future;
+    output r8 as shadeswap_v7.aleo/swap_1_for_0.future;
 
 finalize swap_1_for_0:
     input r0 as u128.public;

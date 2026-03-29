@@ -2,7 +2,7 @@
  * ShadeSwap — Private AMM on Aleo
  * Similar to Uniswap v2, but balances and trades stay private
  */
-program shadeswap_v5.aleo {
+program shadeswap_v7.aleo {
 
     /** 0.3% fee (Uniswap-style) */
     const FEE_NUMERATOR: u128   = 3u128;
@@ -197,17 +197,19 @@ program shadeswap_v5.aleo {
      * Add liquidity and receive LP shares
      */
     async transition add_liquidity(
-        private token0_in:   Token0,
-        private token1_in:   Token1,
-        private amount0:     u128,
-        private amount1:     u128,
-        private min_shares:  u128
+        private token0_in:       Token0,
+        private token1_in:       Token1,
+        private amount0:         u128,
+        private amount1:         u128,
+        private expected_shares: u128,
+        private min_shares:      u128
     ) -> (Token0, Token1, LPToken, Future) {
 
         assert(amount0 > 0u128);
         assert(amount1 > 0u128);
         assert(token0_in.amount >= amount0);
         assert(token1_in.amount >= amount1);
+        assert(expected_shares >= min_shares);
 
         let change0: Token0 = Token0 {
             owner:  self.signer,
@@ -218,16 +220,15 @@ program shadeswap_v5.aleo {
             amount: token1_in.amount - amount1,
         };
 
-        /** Placeholder LP receipt (final shares computed on-chain) */
         let lp_receipt: LPToken = LPToken {
             owner:  self.signer,
-            shares: amount0,
+            shares: expected_shares,
         };
 
         let f: Future = finalize_add_liquidity(
-            self.signer,
             amount0,
             amount1,
+            expected_shares,
             min_shares
         );
 
@@ -235,10 +236,10 @@ program shadeswap_v5.aleo {
     }
 
     async function finalize_add_liquidity(
-        provider:   address,
-        amount0:    u128,
-        amount1:    u128,
-        min_shares: u128
+        amount0:         u128,
+        amount1:         u128,
+        expected_shares: u128,
+        min_shares:      u128
     ) {
         let r0: u128       = Mapping::get_or_use(reserve0,        POOL_ID, 0u128);
         let r1: u128       = Mapping::get_or_use(reserve1,        POOL_ID, 0u128);
@@ -253,14 +254,16 @@ program shadeswap_v5.aleo {
         let shares1: u128           = (amount1 * total_lp) / safe_r1;
         let subsequent_shares: u128 = min_u128(shares0, shares1);
 
-        let shares: u128 = (total_lp == 0u128) ? first_shares : subsequent_shares;
+        let actual_shares: u128 = (total_lp == 0u128) ? first_shares : subsequent_shares;
 
-        assert(shares >= min_shares);
-        assert(shares > 0u128);
+        // Verify the frontend's expected_shares <= what the formula gives
+        assert(actual_shares >= expected_shares);
+        assert(expected_shares >= min_shares);
+        assert(expected_shares > 0u128);
 
         Mapping::set(reserve0,        POOL_ID, r0 + amount0);
         Mapping::set(reserve1,        POOL_ID, r1 + amount1);
-        Mapping::set(lp_total_supply, POOL_ID, total_lp + shares);
+        Mapping::set(lp_total_supply, POOL_ID, total_lp + expected_shares);
     }
 
 
@@ -270,15 +273,19 @@ program shadeswap_v5.aleo {
     async transition remove_liquidity(
         private lp_token:    LPToken,
         private shares:      u128,
+        private amount0:     u128,
+        private amount1:     u128,
         private min_amount0: u128,
         private min_amount1: u128
     ) -> (Token0, Token1, LPToken, Future) {
 
         assert(shares > 0u128);
         assert(lp_token.shares >= shares);
+        assert(amount0 >= min_amount0);
+        assert(amount1 >= min_amount1);
 
-        let token0_out: Token0 = Token0 { owner: self.signer, amount: 1u128 };
-        let token1_out: Token1 = Token1 { owner: self.signer, amount: 1u128 };
+        let token0_out: Token0 = Token0 { owner: self.signer, amount: amount0 };
+        let token1_out: Token1 = Token1 { owner: self.signer, amount: amount1 };
 
         let lp_change: LPToken = LPToken {
             owner:  self.signer,
@@ -286,8 +293,9 @@ program shadeswap_v5.aleo {
         };
 
         let f: Future = finalize_remove_liquidity(
-            self.signer,
             shares,
+            amount0,
+            amount1,
             min_amount0,
             min_amount1
         );
@@ -296,8 +304,9 @@ program shadeswap_v5.aleo {
     }
 
     async function finalize_remove_liquidity(
-        provider:    address,
         shares:      u128,
+        amount0:     u128,
+        amount1:     u128,
         min_amount0: u128,
         min_amount1: u128
     ) {
@@ -308,9 +317,14 @@ program shadeswap_v5.aleo {
         assert(total_lp > 0u128);
         assert(shares <= total_lp);
 
-        let amount0: u128 = (shares * r0) / total_lp;
-        let amount1: u128 = (shares * r1) / total_lp;
+        // Verify the amounts the frontend computed match on-chain formula.
+        // We assert formula_amount >= amount so if reserves moved favorably
+        // the extra stays in the pool (acts as slippage floor).
+        let formula0: u128 = (shares * r0) / total_lp;
+        let formula1: u128 = (shares * r1) / total_lp;
 
+        assert(formula0 >= amount0);
+        assert(formula1 >= amount1);
         assert(amount0 >= min_amount0);
         assert(amount1 >= min_amount1);
 

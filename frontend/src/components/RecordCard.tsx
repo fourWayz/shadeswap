@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { type useRecord, type RecordName } from '@/src/hooks/useRecord';
 import { formatAmount, buildMergeTransaction } from '@/src/utils/aleo';
 import { useTransaction, TxStatus } from '@/src/hooks/useTransaction';
@@ -15,17 +16,38 @@ export function RecordCard({ label, tokenSymbol, tokenType, hook }: RecordCardPr
   const { record, loading, error, fetch, clear } = hook;
   const { status, execute, reset } = useTransaction();
 
-  const isMerging = status === TxStatus.SIGNING || status === TxStatus.PENDING;
+  const [merging, setMerging]         = useState(false);
+  const [mergeConfirmed, setMergeConfirmed] = useState(false);
+
+  // Watch for merge confirmation — only clear AFTER the tx lands
+  useEffect(() => {
+    if (!merging) return;
+    if (status === TxStatus.CONFIRMED) {
+      setMerging(false);
+      setMergeConfirmed(true);
+      reset();
+      clear();
+    } else if (status === TxStatus.FAILED) {
+      setMerging(false);
+      reset();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, merging]);
+
+  const isMerging = merging || status === TxStatus.SIGNING || status === TxStatus.PENDING;
   const canMerge  = !!record && record.count >= 2 && (tokenType === 'Token0' || tokenType === 'Token1');
 
-  const handleMerge = async () => {
+  const handleMerge = () => {
     if (!record || record.all.length < 2) return;
     const [r1, r2] = record.all;
-    await execute(buildMergeTransaction(tokenType as 'Token0' | 'Token1', r1.decrypted, r2.decrypted));
-    reset();
-    // Don't auto-fetch — wallet needs time to index the new merged record.
-    // Clear so user sees the fetch button and knows to re-fetch.
-    clear();
+    setMerging(true);
+    setMergeConfirmed(false);
+    execute(buildMergeTransaction(tokenType as 'Token0' | 'Token1', r1.decrypted, r2.decrypted));
+  };
+
+  const handleFetchAfterMerge = () => {
+    setMergeConfirmed(false);
+    fetch();
   };
 
   return (
@@ -124,6 +146,26 @@ export function RecordCard({ label, tokenSymbol, tokenType, hook }: RecordCardPr
                 Clear
               </button>
             </>
+          ) : mergeConfirmed ? (
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={handleFetchAfterMerge}
+                disabled={loading}
+                className="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+                style={{
+                  fontFamily: 'var(--font-space-mono)',
+                  background: loading ? 'var(--shade-surface)' : 'rgba(61,220,132,0.15)',
+                  color:      loading ? 'var(--shade-muted)' : 'var(--shade-green)',
+                  border:     `1px solid ${loading ? 'var(--shade-border)' : 'rgba(61,220,132,0.4)'}`,
+                  cursor:     loading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {loading ? '…' : '✓ Fetch merged'}
+              </button>
+              <span style={{ fontSize: '0.55rem', color: 'var(--shade-muted)', fontFamily: 'var(--font-space-mono)', textAlign: 'right' }}>
+                if unchanged, wait ~30s
+              </span>
+            </div>
           ) : (
             <button
               onClick={fetch}

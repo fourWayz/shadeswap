@@ -65,6 +65,7 @@ export function AddLiquidity({ reserves }: AddLiquidityProps) {
       t1Record: t1.record.decrypted,
       amount0,
       amount1,
+      expectedShares: estimatedShares,
       minShares,
     });
     execute(tx);

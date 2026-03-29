@@ -36,7 +36,7 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
 
   const maxShares = lp.record?.balance ?? 0n;
 
-  // Parse shares
+  // Parse shares: the user types in human-readable (6 decimals)
   const sharesRaw = (() => {
     if (!sharesStr) return 0n;
     const [w, f = ''] = sharesStr.split('.');
@@ -59,6 +59,8 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
     const tx = buildRemoveLiquidityTransaction({
       lpRecord:    lp.record.decrypted,
       shares:      sharesRaw,
+      amount0,
+      amount1,
       minAmount0:  min0,
       minAmount1:  min1,
     });
