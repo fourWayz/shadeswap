@@ -163,7 +163,7 @@ export function RecordCard({ label, tokenSymbol, tokenType, hook }: RecordCardPr
                 {loading ? '…' : '✓ Fetch merged'}
               </button>
               <span style={{ fontSize: '0.55rem', color: 'var(--shade-muted)', fontFamily: 'var(--font-space-mono)', textAlign: 'right' }}>
-                if unchanged, wait ~30s
+                click to fetch updated balance
               </span>
             </div>
           ) : (
