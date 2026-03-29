@@ -30,11 +30,12 @@ export function RemoveLiquidity({ reserves }: RemoveLiquidityProps) {
 
   useEffect(() => {
     if (lp.record && !sharesStr) {
-      setSharesStr(formatAmount(lp.record.balance));
+      setSharesStr(formatAmount(lp.record.all[0]?.balance ?? lp.record.balance));
     }
   }, [lp.record]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const maxShares = lp.record?.balance ?? 0n;
+  // Use best single record's balance 
+  const maxShares = lp.record?.all[0]?.balance ?? 0n;
 
   // Parse shares: the user types in human-readable (6 decimals)
   const sharesRaw = (() => {

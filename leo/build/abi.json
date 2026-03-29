@@ -1,5 +1,5 @@
 {
-  "program": "shadeswap_v7.aleo",
+  "program": "shadeswap_v8.aleo",
   "structs": [],
   "records": [
     {
@@ -180,7 +180,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -223,7 +223,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -241,7 +241,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -274,7 +274,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -285,7 +285,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -303,7 +303,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -336,7 +336,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -347,7 +347,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -365,7 +365,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -377,7 +377,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -390,7 +390,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -408,7 +408,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -420,7 +420,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -433,7 +433,50 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
+            }
+          },
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "merge_lp",
+      "is_async": false,
+      "inputs": [
+        {
+          "name": "r1",
+          "ty": {
+            "Record": {
+              "path": [
+                "LPToken"
+              ],
+              "program": "shadeswap_v8"
+            }
+          },
+          "mode": "Private"
+        },
+        {
+          "name": "r2",
+          "ty": {
+            "Record": {
+              "path": [
+                "LPToken"
+              ],
+              "program": "shadeswap_v8"
+            }
+          },
+          "mode": "Private"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "LPToken"
+              ],
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -451,7 +494,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -463,7 +506,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -520,7 +563,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -531,7 +574,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -542,7 +585,7 @@
               "path": [
                 "LPToken"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -564,7 +607,7 @@
               "path": [
                 "LPToken"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -632,7 +675,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -643,7 +686,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -654,7 +697,7 @@
               "path": [
                 "LPToken"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -676,7 +719,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -711,7 +754,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -722,7 +765,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -744,7 +787,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "Private"
@@ -779,7 +822,7 @@
               "path": [
                 "Token1"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"
@@ -790,7 +833,7 @@
               "path": [
                 "Token0"
               ],
-              "program": "shadeswap_v7"
+              "program": "shadeswap_v8"
             }
           },
           "mode": "None"

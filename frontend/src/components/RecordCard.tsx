@@ -118,20 +118,27 @@ export function RecordCard({ label, tokenSymbol, tokenType, hook }: RecordCardPr
           {record ? (
             <>
               {canMerge && (
-                <button
-                  onClick={handleMerge}
-                  disabled={isMerging}
-                  className="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
-                  style={{
-                    fontFamily: 'var(--font-space-mono)',
-                    background: isMerging ? 'var(--shade-surface)' : 'rgba(245,166,35,0.15)',
-                    color:      isMerging ? 'var(--shade-muted)' : 'var(--shade-amber)',
-                    border:     `1px solid ${isMerging ? 'var(--shade-border)' : 'var(--shade-amber)'}`,
-                    cursor:     isMerging ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {isMerging ? 'Merging…' : 'Merge'}
-                </button>
+                <div className="flex flex-col items-end gap-0.5">
+                  <button
+                    onClick={handleMerge}
+                    disabled={isMerging}
+                    className="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+                    style={{
+                      fontFamily: 'var(--font-space-mono)',
+                      background: isMerging ? 'var(--shade-surface)' : 'rgba(245,166,35,0.15)',
+                      color:      isMerging ? 'var(--shade-muted)' : 'var(--shade-amber)',
+                      border:     `1px solid ${isMerging ? 'var(--shade-border)' : 'var(--shade-amber)'}`,
+                      cursor:     isMerging ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {isMerging ? 'Merging…' : `Merge (2 of ${record.count})`}
+                  </button>
+                  {record.count > 2 && !isMerging && (
+                    <span style={{ fontSize: '0.55rem', color: 'var(--shade-muted)', fontFamily: 'var(--font-space-mono)', textAlign: 'right' }}>
+                      merges top 2 — repeat for rest
+                    </span>
+                  )}
+                </div>
               )}
               <button
                 onClick={clear}
@@ -163,7 +170,7 @@ export function RecordCard({ label, tokenSymbol, tokenType, hook }: RecordCardPr
                 {loading ? '…' : '✓ Fetch merged'}
               </button>
               <span style={{ fontSize: '0.55rem', color: 'var(--shade-muted)', fontFamily: 'var(--font-space-mono)', textAlign: 'right' }}>
-                click to fetch updated balance
+                refresh and fetch merged record
               </span>
             </div>
           ) : (

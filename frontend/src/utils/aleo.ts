@@ -35,7 +35,7 @@ export interface RemoveLiquidityParams {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const PROGRAM_ID = 'shadeswap_v7.aleo';
+export const PROGRAM_ID = 'shadeswap_v8.aleo';
 export const NETWORK    = 'testnet';
 export const API_URL    = 'https://api.provable.com/v2/testnet';
 export const DECIMALS   = 6;
@@ -227,10 +227,11 @@ export function buildAddLiquidityTransaction(params: AddLiquidityParams): AleoTx
   };
 }
 
-export function buildMergeTransaction(token: 'Token0' | 'Token1', record1: string, record2: string): AleoTxOptions {
+export function buildMergeTransaction(token: 'Token0' | 'Token1' | 'LPToken', record1: string, record2: string): AleoTxOptions {
+  const fn = token === 'Token0' ? 'merge_token0' : token === 'Token1' ? 'merge_token1' : 'merge_lp';
   return {
     program: PROGRAM_ID,
-    function: token === 'Token0' ? 'merge_token0' : 'merge_token1',
+    function: fn,
     inputs: [record1, record2],
     fee: 1_500_000,
     privateFee: false,
